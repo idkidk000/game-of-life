@@ -28,10 +28,25 @@
 }
 
 @layer base {
+  * {
+    box-sizing: border-box;
+  }
   body {
     @apply bg-background text-foreground;
   }
   div#root {
     @apply h-dvh;
+  }
+  button {
+    @apply bg-foreground/20 p-2 rounded-xl shadow;
+    &:hover {
+      @apply bg-foreground/10;
+    }
+    &:disabled {
+      @apply text-foreground/50;
+    }
+  }
+  .input-group {
+    @apply flex gap-4 items-center rounded-xl p-2 shadow border border-foreground/5;
   }
 }

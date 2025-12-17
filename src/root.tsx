@@ -1,4 +1,4 @@
-import App from '@/app.tsx';
+import Page from '@/page';
 import '@/styles.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -8,6 +8,6 @@ if (!root) throw new Error('could not find root node');
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <Page />
   </StrictMode>,
 );
