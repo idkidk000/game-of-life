@@ -24,10 +24,10 @@ export function Controls() {
 
   return (
     <div className='flex flex-wrap gap-4 m-4 items-center'>
-      <button type='button' onClick={handlePausedClick} className='min-w-[calc(7ch+2em)]'>
+      <button type='button' onClick={handlePausedClick} className='min-w-[calc(7ch+3em)]'>
         {controls.paused ? 'Paused' : 'Running'}
       </button>
-      <Range title='Speed' min={0.1} max={10} unit='x' value={controls.speed} onValueChange={handleSpeedChange} />
+      <Range title='Speed' min={1} max={10} step={1} decimals={0} unit='x' value={controls.speed} onValueChange={handleSpeedChange} />
       <Range title='Scale' min={0.1} max={1} unit='x' value={controls.scale} onValueChange={handleScaleChange} />
       <Range title='Radius' min={1} max={15} step={1} decimals={0} unit='px' value={controls.radius} onValueChange={handleRadiusChange} />
       <Checkbox title='Random' value={controls.random} onValueChange={handleRandomChange} />
