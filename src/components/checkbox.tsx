@@ -8,7 +8,7 @@ export function Checkbox({ title, value, onValueChange }: { title: string; value
   return (
     <span className='input-group'>
       <label htmlFor={id}>{title}</label>
-      <input id={id} type='checkbox' onChange={handleChange} checked={value}></input>
+      <input id={id} type='checkbox' onChange={handleChange} checked={value} />
     </span>
   );
 }

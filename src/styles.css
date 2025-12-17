@@ -25,6 +25,7 @@
 @theme inline {
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-accent: var(--color-pink-500);
 }
 
 @layer base {
@@ -32,25 +33,33 @@
     box-sizing: border-box;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground accent-accent transition-colors duration-200;
   }
   div#root {
     @apply h-dvh;
   }
   button {
-    @apply bg-foreground/20 p-2 rounded-xl shadow transition-colors duration-200;
-    &:hover {
-      @apply bg-foreground/15;
+    @apply bg-foreground/20 px-4 py-2 rounded-xl shadow transition-[background-color,color,border-color] duration-200 border-3 border-transparent;
+    &:not(:disabled) {
+      &:hover {
+        @apply bg-foreground/15 border-accent/50;
+      }
+      &:active {
+        @apply bg-foreground/10 border-accent;
+      }
     }
     &:disabled {
       @apply text-foreground/50;
     }
-    &:active {
-      @apply bg-foreground/10;
-    }
   }
   .input-group {
-    @apply flex gap-4 items-center rounded-xl p-2 shadow border border-foreground/5;
+    @apply flex gap-4 items-center rounded-xl p-2 shadow border-3 border-foreground/5 transition-[border-color] duration-200;
+    &:has(:hover) {
+      @apply border-accent/50;
+    }
+    &:has(:active) {
+      @apply border-accent;
+    }
   }
   .img-pixel {
     image-rendering: pixelated;

@@ -13,6 +13,8 @@ export function Simulation() {
 
   const animateFrame = useCallback(
     (time: number) => {
+      const checkpoint: [label: string, timestamp: number][] = [['started', performance.now()]];
+
       isPaused.current = controlsRef.current.paused;
       if (isPaused.current) frameTimes.current.clear();
       else requestAnimationFrame(animateFrame);
@@ -39,13 +41,21 @@ export function Simulation() {
 
       const indexToPoint = (index: number): Point => ({ x: index % width, y: Math.floor(index / width) });
 
+      checkpoint.push(['simStart', performance.now()]);
+
       // TODO: multiple steps per frame
       // simulate state.current to state.next
-      for (const [i, value] of state.current.entries()) {
+      // FIXME: this is the slowest part by a long way
+      for (let i = 0; i < state.current.length; ++i) {
+        const value = state.current[i];
         const isLive = value > 0;
         let neighboursLive = 0;
         const point = indexToPoint(i);
-        for (const offset of offsets) if (state.current[pointToIndex(addPoints(point, offset))]) ++neighboursLive;
+        for (let o = 0; o < offsets.length; ++o) {
+          const offset = offsets[o];
+          if (state.current[pointToIndex(addPoints(point, offset))] > 0) ++neighboursLive;
+          if (neighboursLive > 3) break;
+        }
         if (isLive && neighboursLive >= 2 && neighboursLive <= 3) state.next[i] = Math.min(255, value + 1);
         else if (!isLive && neighboursLive === 3) state.next[i] = 1;
         else if (controlsRef.current.random && Math.random() > 0.999999) {
@@ -53,6 +63,8 @@ export function Simulation() {
             for (let oy = -2; oy <= 2; ++oy) if (Math.random() > 0.7) state.next[pointToIndex(addPoints(point, { x: ox, y: oy }))] = Math.min(255, value + 1);
         }
       }
+
+      checkpoint.push(['draw', performance.now()]);
 
       if (!stateRef.current)
         // clear canvas if no previous state
@@ -63,7 +75,8 @@ export function Simulation() {
       let drawCount = 0;
       // const pixel = context.createImageData(1, 1);
       // pixel.data[3] = 255;
-      for (const [i, value] of state.next.entries()) {
+      for (let i = 0; i < state.next.length; ++i) {
+        const value = state.next[i];
         if (value) ++liveCount;
         const prevValue = state.current[i];
         if (value !== prevValue) {
@@ -82,6 +95,8 @@ export function Simulation() {
       // swap state.current and state.next
       state.current.fill(0);
       stateRef.current = { current: state.next, next: state.current };
+
+      checkpoint.push(['labels', performance.now()]);
 
       // labels
       context.clearRect(0, canvasRef.current.height - 20, canvasRef.current.width, 20);
@@ -103,6 +118,18 @@ export function Simulation() {
 
       context.fillStyle = 'hsl(250 50% 50%/ 100%)';
       context.fillText(liveCount.toLocaleString(), canvasRef.current.width - 45, canvasRef.current.height - 5);
+
+      checkpoint.push(['ended', performance.now()]);
+
+      const times = checkpoint
+        .entries()
+        .drop(1)
+        .map(([i, to]) => {
+          const from = checkpoint[i - 1];
+          return { from: from[0], to: to[0], millis: to[1] - from[1] };
+        })
+        .toArray();
+      console.log(times);
     },
     [controlsRef],
   );
@@ -150,6 +177,13 @@ export function Simulation() {
     contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
   }, [controls.reset]);
 
+  // fill
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate
+  useEffect(() => {
+    if (!stateRef.current) return;
+    for (let i = 0; i < stateRef.current.current.length; ++i) stateRef.current.current[i] = Math.random() > 0.7 ? 1 : 0;
+  }, [controls.fill]);
+
   const spawn = useCallback(
     (event: { clientX: number; clientY: number }) => {
       if (!canvasRef.current) return;
@@ -161,9 +195,11 @@ export function Simulation() {
         x: Math.max(0, Math.floor((event.clientX - canvasRect.x) * controlsRef.current.scale - 2)),
         y: Math.max(0, Math.floor((event.clientY - canvasRect.top) * controlsRef.current.scale - 2)),
       };
-      for (let x = -2; x <= 2; ++x) for (let y = -2; y <= 2; ++y) if (Math.random() > 0.7) stateRef.current.current[pointToIndex(addPoints(point, { x, y }))] = 1;
+      for (let x = -controlsRef.current.radius; x <= controlsRef.current.radius; ++x)
+        for (let y = -controlsRef.current.radius; y <= controlsRef.current.radius; ++y)
+          if (Math.random() > 0.7) stateRef.current.current[pointToIndex(addPoints(point, { x, y }))] = 1;
     },
-    [controlsRef.current.scale],
+    [controlsRef.current.radius, controlsRef.current.scale],
   );
 
   // click to spawn
@@ -178,5 +214,5 @@ export function Simulation() {
     [spawn],
   );
 
-  return <canvas ref={canvasRef} className='w-full h-full border-4 rounded-2xl border-pink-300 bg-black img-pixel' onMouseMove={handleMouseMove} onClick={handleClick} />;
+  return <canvas ref={canvasRef} className='w-full h-full border-3 rounded-2xl border-accent bg-black img-pixel' onMouseMove={handleMouseMove} onClick={handleClick} />;
 }

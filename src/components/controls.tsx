@@ -14,23 +14,31 @@ export function Controls() {
 
   const handleScaleChange = useCallback((value: number) => setControls((prev) => ({ ...prev, scale: value })), [setControls]);
 
+  const handleRadiusChange = useCallback((value: number) => setControls((prev) => ({ ...prev, radius: value })), [setControls]);
+
   const handleRandomChange = useCallback((value: boolean) => setControls((prev) => ({ ...prev, random: value })), [setControls]);
 
   const handleResetClick = useCallback(() => setControls((prev) => ({ ...prev, reset: Math.random() })), [setControls]);
 
+  const handleFillClick = useCallback(() => setControls((prev) => ({ ...prev, fill: Math.random() })), [setControls]);
+
   return (
-    <div className='flex gap-4 m-4 items-center'>
-      <button type='button' onClick={handlePausedClick} className='min-w-[9ch]'>
+    <div className='flex flex-wrap gap-4 m-4 items-center'>
+      <button type='button' onClick={handlePausedClick} className='min-w-[calc(7ch+2em)]'>
         {controls.paused ? 'Paused' : 'Running'}
       </button>
-      <Range title='Speed' min={0.1} max={10} value={controls.speed} onValueChange={handleSpeedChange} />
-      <Range title='Scale' min={0.1} max={1} value={controls.scale} onValueChange={handleScaleChange} />
+      <Range title='Speed' min={0.1} max={10} unit='x' value={controls.speed} onValueChange={handleSpeedChange} />
+      <Range title='Scale' min={0.1} max={1} unit='x' value={controls.scale} onValueChange={handleScaleChange} />
+      <Range title='Radius' min={1} max={15} step={1} decimals={0} unit='px' value={controls.radius} onValueChange={handleRadiusChange} />
       <Checkbox title='Random' value={controls.random} onValueChange={handleRandomChange} />
       <button type='button' disabled={!controls.paused} onClick={handleStepClick}>
         Step
       </button>
       <button type='button' onClick={handleResetClick}>
         Reset
+      </button>
+      <button type='button' onClick={handleFillClick}>
+        Fill
       </button>
     </div>
   );

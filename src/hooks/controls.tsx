@@ -5,9 +5,11 @@ export interface Controls {
   speed: number;
   scale: number;
   random: boolean;
+  radius: number;
   // FIXME: idk the correct way to emit events through a context
   step: number;
   reset: number;
+  fill: number;
 }
 
 interface Context {
@@ -23,6 +25,8 @@ const defaults: Controls = {
   random: true,
   step: 0,
   reset: 0,
+  fill: 0,
+  radius: 3,
 };
 
 const Context = createContext<Context | null>(null);

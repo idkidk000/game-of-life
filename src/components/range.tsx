@@ -7,7 +7,8 @@ export function Range({
   min = 0,
   max = 1,
   step = 0.1,
-  labelDecimals = 1,
+  decimals = 1,
+  unit = '',
 }: {
   title: string;
   value: number;
@@ -15,7 +16,8 @@ export function Range({
   min?: number;
   max?: number;
   step?: number;
-  labelDecimals?: number;
+  decimals?: number;
+  unit?: string;
 }) {
   const id = useId();
 
@@ -24,8 +26,8 @@ export function Range({
   return (
     <span className='input-group'>
       <label htmlFor={id}>{title}</label>
-      <input id={id} type='range' min={min} max={max} step={step} onChange={handleChange} value={value}></input>
-      <pre>{value.toFixed(labelDecimals)}x</pre>
+      <input id={id} type='range' min={min} max={max} step={step} onChange={handleChange} value={value} />
+      <pre>{`${value.toFixed(decimals)}${unit}`}</pre>
     </span>
   );
 }
