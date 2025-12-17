@@ -24,6 +24,7 @@ export function Simulation() {
   const isPaused = useRef(true);
   const frameTimes = useRef(new SlidingWindow<number>(30));
   const contextRef = useRef<CanvasRenderingContext2D>(null);
+  const nextPixelsRef = useRef<Uint32Array>(null);
 
   const animateFrame = useCallback(
     (time: number) => {
@@ -34,35 +35,33 @@ export function Simulation() {
 
         if (!canvasRef.current) return;
 
-        const context = contextRef.current ?? canvasRef.current.getContext('2d');
+        const context = contextRef.current ?? canvasRef.current.getContext('2d', { willReadFrequently: true, desynchronized: true });
         if (!context) return;
         if (context !== contextRef.current) contextRef.current = context;
 
-        // FIXME: store the refs
-        const currentImage = context.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
-        const nextImage = context.createImageData(currentImage.width, currentImage.height - 20);
+        const image = context.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height - 20);
+        const pixels = new Uint32Array(image.data.buffer);
 
-        const currentPixels = new Uint32Array(currentImage.data.buffer);
-        const nextPixels = new Uint32Array(nextImage.data.buffer);
+        const nextPixels = nextPixelsRef.current && nextPixelsRef.current.length === pixels.length ? nextPixelsRef.current : new Uint32Array(pixels.length);
+        if (nextPixels !== nextPixelsRef.current) nextPixelsRef.current = nextPixels;
+        nextPixels.fill(0);
 
         const pointToIndex = ({ x, y }: Point) => {
-          return (
-            (y < 0 ? nextImage.height + y : y >= nextImage.height ? nextImage.height - y : y) * nextImage.width +
-            (x < 0 ? nextImage.width + x : x >= nextImage.width ? nextImage.width - x : x)
-          );
+          return (y < 0 ? image.height + y : y >= image.height ? image.height - y : y) * image.width + (x < 0 ? image.width + x : x >= image.width ? image.width - x : x);
         };
 
-        const getLive = (point: Point) => currentPixels[pointToIndex(point)] > 0;
+        const getLive = (point: Point) => pixels[pointToIndex(point)] > 0;
         // biome-ignore lint/suspicious/noAssignInExpressions: deliberate
         const setLive = (point: Point) => (nextPixels[pointToIndex(point)] = 0xffffffff);
 
         let liveCount = 0;
 
-        for (let x = 0; x < nextImage.width; ++x) {
-          for (let y = 0; y < nextImage.height; ++y) {
+        for (let x = 0; x < image.width; ++x) {
+          for (let y = 0; y < image.height; ++y) {
             const isLive = getLive({ x, y });
             if (isLive) ++liveCount;
-            const neighboursLive = offsets.reduce((acc, item) => acc + (getLive(addPoints({ x, y }, item)) ? 1 : 0), 0);
+            let neighboursLive = 0;
+            for (const offset of offsets) if (getLive(addPoints({ x, y }, offset))) ++neighboursLive;
             if ((isLive && neighboursLive >= 2 && neighboursLive <= 3) || (!isLive && neighboursLive === 3)) setLive({ x, y });
             else if (controlsRef.current.random && Math.random() > 0.999999) {
               for (let ox = -2; ox <= 2; ++ox) for (let oy = -2; oy <= 2; ++oy) if (Math.random() > 0.7) setLive(addPoints({ x, y }, { x: ox, y: oy }));
@@ -70,8 +69,14 @@ export function Simulation() {
           }
         }
 
+        // write back to currentImage
+        for (const [i, value] of nextPixels.entries()) {
+          if (pixels[i] !== value) pixels[i] = value;
+        }
+
         // replace canvas pixel data
-        context.putImageData(nextImage, 0, 0);
+        context.imageSmoothingEnabled = false;
+        context.putImageData(image, 0, 0);
 
         // labels
         context.fillStyle = 'rgb(0 0 0 / 100%)';
