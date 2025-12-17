@@ -1,4 +1,4 @@
-import { type ChangeEvent, useCallback } from 'react';
+import { type ChangeEvent, useCallback, useId } from 'react';
 
 export function Range({
   title,
@@ -17,12 +17,14 @@ export function Range({
   step?: number;
   labelDecimals?: number;
 }) {
+  const id = useId();
+
   const handleChange = useCallback((event: ChangeEvent<HTMLInputElement>) => onValueChange(event.target.valueAsNumber), [onValueChange]);
 
   return (
     <span className='input-group'>
-      <label>{title}</label>
-      <input type='range' min={min} max={max} step={step} onChange={handleChange} value={value}></input>
+      <label htmlFor={id}>{title}</label>
+      <input id={id} type='range' min={min} max={max} step={step} onChange={handleChange} value={value}></input>
       <pre>{value.toFixed(labelDecimals)}x</pre>
     </span>
   );

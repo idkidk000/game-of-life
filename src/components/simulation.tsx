@@ -1,22 +1,7 @@
 import { type MouseEvent, useCallback, useEffect, useRef } from 'react';
 import { useControls } from '@/hooks/controls';
+import { addPoints, offsets, type Point } from '@/lib/point';
 import { SlidingWindow } from '@/lib/sliding-window';
-
-interface Point {
-  x: number;
-  y: number;
-}
-const addPoints = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y });
-const offsets: Point[] = [
-  { x: 0, y: 1 },
-  { x: 1, y: 1 },
-  { x: 1, y: 0 },
-  { x: 1, y: -1 },
-  { x: 0, y: -1 },
-  { x: -1, y: -1 },
-  { x: -1, y: 0 },
-  { x: -1, y: 1 },
-];
 
 export function Simulation() {
   const { controls, controlsRef } = useControls();
@@ -54,6 +39,7 @@ export function Simulation() {
 
       const indexToPoint = (index: number): Point => ({ x: index % width, y: Math.floor(index / width) });
 
+      // TODO: multiple steps per frame
       // simulate state.current to state.next
       for (const [i, value] of state.current.entries()) {
         const isLive = value > 0;
@@ -75,6 +61,8 @@ export function Simulation() {
       // draw state deltas to context
       let liveCount = 0;
       let drawCount = 0;
+      // const pixel = context.createImageData(1, 1);
+      // pixel.data[3] = 255;
       for (const [i, value] of state.next.entries()) {
         if (value) ++liveCount;
         const prevValue = state.current[i];
@@ -82,6 +70,11 @@ export function Simulation() {
           const point = indexToPoint(i);
           context.fillStyle = value ? `hsl(${value} 50% 50% / 100%)` : 'hsl(0 0% 0% / 100%)';
           context.fillRect(point.x, point.y, 1, 1);
+          // const [r, g, b] = value ? convert.hsl.rgb(value, 50, 50) : [0, 0, 0];
+          // pixel.data[0] = r;
+          // pixel.data[1] = g;
+          // pixel.data[2] = b;
+          // context.putImageData(pixel, point.x, point.y);
           ++drawCount;
         }
       }
@@ -176,6 +169,7 @@ export function Simulation() {
   // click to spawn
   const handleClick = useCallback((event: MouseEvent<HTMLCanvasElement>) => spawn(event), [spawn]);
 
+  // TODO: draw complete lines while dragging
   // button and move to spawn
   const handleMouseMove = useCallback(
     (event: MouseEvent<HTMLCanvasElement>) => {

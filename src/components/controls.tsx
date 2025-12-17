@@ -23,7 +23,7 @@ export function Controls() {
       <button type='button' onClick={handlePausedClick} className='min-w-[9ch]'>
         {controls.paused ? 'Paused' : 'Running'}
       </button>
-      <Range title='Speed' min={0.1} max={1} value={controls.speed} onValueChange={handleSpeedChange} />
+      <Range title='Speed' min={0.1} max={10} value={controls.speed} onValueChange={handleSpeedChange} />
       <Range title='Scale' min={0.1} max={1} value={controls.scale} onValueChange={handleScaleChange} />
       <Checkbox title='Random' value={controls.random} onValueChange={handleRandomChange} />
       <button type='button' disabled={!controls.paused} onClick={handleStepClick}>
