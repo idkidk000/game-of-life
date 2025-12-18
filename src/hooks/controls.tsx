@@ -21,7 +21,7 @@ interface Context {
 const defaults: Controls = {
   paused: false,
   speed: 1,
-  scale: 0.2,
+  scale: 0.5,
   random: true,
   step: 0,
   reset: 0,

@@ -2,17 +2,18 @@ import { type MouseEvent, useCallback, useEffect, useRef } from 'react';
 import { useControls } from '@/hooks/controls';
 import { GameOfLife } from '@/lib/game-of-life';
 
+const LABELS_HEIGHT = 20;
+
 export function Simulation() {
   const { controls, controlsRef } = useControls();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const simRef = useRef<GameOfLife>(null);
-  const dragRef = useRef<[x: number, y: number]>(null);
 
   // animation loop
   // biome-ignore lint/correctness/useExhaustiveDependencies: controlsRef is a ref you silly goose
   useEffect(() => {
     if (!canvasRef.current) return;
-    if (!simRef.current) simRef.current = new GameOfLife(canvasRef.current.width, canvasRef.current.height - 20);
+    if (!simRef.current) simRef.current = new GameOfLife(canvasRef.current.width, canvasRef.current.height - LABELS_HEIGHT);
     const context = canvasRef.current.getContext('2d', { alpha: false, desynchronized: true });
     let requestKey = 0;
     let lastStepDuration = 0;
@@ -22,9 +23,9 @@ export function Simulation() {
       if (!simRef.current) return;
       if (!context) return;
       if (!canvasRef.current) return;
-      if (simRef.current.width !== canvasRef.current.width || simRef.current.height !== canvasRef.current.height - 20)
+      if (simRef.current.width !== canvasRef.current.width || simRef.current.height !== canvasRef.current.height - LABELS_HEIGHT)
         // handle canvas resize
-        simRef.current.resize(canvasRef.current.width, canvasRef.current.height - 20);
+        simRef.current.resize(canvasRef.current.width, canvasRef.current.height - LABELS_HEIGHT);
       if (!controlsRef.current.paused)
         // step
         lastStepDuration = simRef.current.step(controlsRef.current.speed, controlsRef.current.random);
@@ -37,7 +38,7 @@ export function Simulation() {
       }
 
       // render labels
-      context.clearRect(0, canvasRef.current.height - 20, canvasRef.current.width, 20);
+      context.clearRect(0, canvasRef.current.height - LABELS_HEIGHT, canvasRef.current.width, LABELS_HEIGHT);
       context.fillStyle = 'hsl(50 50% 50%/ 100%)';
       context.fillText(Math.round(time).toLocaleString(), 5, canvasRef.current.height - 5);
 
@@ -52,7 +53,6 @@ export function Simulation() {
     };
 
     requestKey = requestAnimationFrame(render);
-
     return () => cancelAnimationFrame(requestKey);
   }, []);
 
@@ -62,26 +62,23 @@ export function Simulation() {
     simRef.current?.step(1, controlsRef.current.random);
   }, [controls.step]);
 
-  // resize
+  // resize canvas to element
+  // biome-ignore lint/correctness/useExhaustiveDependencies: controlsRef is a ref you silly goose
   useEffect(() => {
     if (!canvasRef.current) return;
     const element = canvasRef.current;
 
-    const resize = ({ width, height }: { width: number; height: number }) => {
-      element.width = Math.floor(width * controls.scale);
-      element.height = Math.floor(height * controls.scale);
-    };
-
     const observer = new ResizeObserver((entries) => {
-      const [entry] = entries;
-      resize(entry.contentRect);
+      const [{ contentRect }] = entries;
+      const { width, height } = contentRect;
+      element.width = Math.floor(width * controlsRef.current.scale);
+      element.height = Math.floor(height * controlsRef.current.scale);
     });
 
     observer.observe(element);
-    resize(element.getBoundingClientRect());
 
     return () => observer.unobserve(element);
-  }, [controls.scale]);
+  }, []);
 
   // reset
   // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate
@@ -106,25 +103,13 @@ export function Simulation() {
 
   // click to spawn
   // biome-ignore lint/correctness/useExhaustiveDependencies: controlsRef is a ref you silly goose
-  const handleClick = useCallback(
-    (event: MouseEvent<HTMLCanvasElement>) => {
-      const [x, y] = clientXyToCanvasXy(event);
-      simRef.current?.spawn([x, y], [x, y], controlsRef.current.radius);
-    },
-    [clientXyToCanvasXy],
-  );
+  const handleClick = useCallback((event: MouseEvent<HTMLCanvasElement>) => simRef.current?.spawn(...clientXyToCanvasXy(event), controlsRef.current.radius), [clientXyToCanvasXy]);
 
   // drag to spawn
   // biome-ignore lint/correctness/useExhaustiveDependencies: controlsRef is a ref you silly goose
   const handleMouseMove = useCallback(
     (event: MouseEvent<HTMLCanvasElement>) => {
-      if (!event.buttons) dragRef.current = null;
-      else {
-        const [x, y] = clientXyToCanvasXy(event);
-        if (dragRef.current) simRef.current?.spawn(dragRef.current, [x, y], controlsRef.current.radius);
-        else simRef.current?.spawn([x, y], [x, y], controlsRef.current.radius);
-        dragRef.current = [x, y];
-      }
+      if (event.buttons) simRef.current?.spawn(...clientXyToCanvasXy(event), controlsRef.current.radius);
     },
     [clientXyToCanvasXy],
   );
