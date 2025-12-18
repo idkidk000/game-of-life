@@ -39,7 +39,7 @@
     @apply h-dvh;
   }
   button {
-    @apply bg-foreground/20 px-4 py-2 rounded-xl shadow transition-[background-color,color,border-color] duration-200 border-3 border-transparent;
+    @apply bg-foreground/20 px-4 py-2 rounded-lg shadow transition-[background-color,color,border-color] duration-200 border-3 border-transparent;
     &:not(:disabled) {
       &:hover {
         @apply bg-foreground/15 border-accent/50;
@@ -53,7 +53,7 @@
     }
   }
   .input-group {
-    @apply flex gap-4 items-center rounded-xl p-2 shadow border-3 border-foreground/5 transition-[border-color] duration-200;
+    @apply flex gap-4 items-center rounded-lg p-2 shadow border-3 border-transparent transition-[border-color] duration-200;
     &:has(:hover) {
       @apply border-accent/50;
     }

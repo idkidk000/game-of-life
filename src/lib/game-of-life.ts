@@ -65,12 +65,27 @@ export class GameOfLife {
     // set a random neighbour count
     for (let i = 0; i < this.#current.length; ++i) this.#current[i] = (this.#current[i] & 0xff0) | Math.round(Math.random() * 8);
   }
-  spawn(x: number, y: number, radius = 3): void {
+  spawn(x: number, y: number, radius = 5): void {
+    const radius2 = radius ** 2;
     for (let rx = -radius; rx <= radius; ++rx)
       for (let ry = -radius; ry <= radius; ++ry) {
+        const dist2 = rx ** 2 + ry ** 2;
+        if (dist2 > radius2) continue;
         const index = this.#xyToIndex(rx + x, ry + y);
         // set a random neighbour count
         this.#current[index] = (this.#current[index] & 0xff0) | Math.round(Math.random() * 8);
+      }
+  }
+  erase(x: number, y: number, radius = 5): void {
+    console.debug('erase', { x, y });
+    const radius2 = radius ** 2;
+    for (let rx = -radius; rx <= radius; ++rx)
+      for (let ry = -radius; ry <= radius; ++ry) {
+        const dist2 = rx ** 2 + ry ** 2;
+        if (dist2 > radius2) continue;
+        const index = this.#xyToIndex(rx + x, ry + y);
+        // clear neighbour count
+        this.#current[index] = this.#current[index] & 0xff0;
       }
   }
   #writeNext(index: number, age: number, alive: boolean): void {
