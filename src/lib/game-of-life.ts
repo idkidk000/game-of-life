@@ -3,8 +3,8 @@ export class GameOfLife {
   #height: number;
   /** structure:\
    * 12-15: unused\
-   * 4-11: age\
-   * 0-3: neighboursAlive
+   *  4-11: age\
+   *  0- 3: neighboursAlive
    */
   #current: Uint16Array;
   #next: Uint16Array;
@@ -118,13 +118,15 @@ export class GameOfLife {
     }
     return performance.now() - started;
   }
-  *deltas(): Generator<[x: number, y: number, value: number], undefined, undefined> {
-    if (this.#isDirty) for (let i = 0; i < this.#dirty.length; ++i) if (this.#dirty[i]) yield [...this.#indexToXy(i), this.#current[i] >> 4];
+  /** age is 0-255, neighbours is 0-8 */
+  *deltas(): Generator<[x: number, y: number, age: number, neighbours: number], undefined, undefined> {
+    if (this.#isDirty) for (let i = 0; i < this.#dirty.length; ++i) if (this.#dirty[i]) yield [...this.#indexToXy(i), this.#current[i] >> 4, this.#current[i] & 0xf];
     this.#dirty.fill(false);
     this.#isDirty = false;
   }
-  *values(): Generator<[x: number, y: number, value: number], undefined, undefined> {
-    for (let i = 0; i < this.#current.length; ++i) yield [...this.#indexToXy(i), this.#current[i] >> 4];
+  /** age is 0-255, neighbours is 0-8 */
+  *values(): Generator<[x: number, y: number, age: number, neighbours: number], undefined, undefined> {
+    for (let i = 0; i < this.#current.length; ++i) yield [...this.#indexToXy(i), this.#current[i] >> 4, this.#current[i] & 0xf];
     this.#dirty.fill(false);
     this.#isDirty = false;
   }

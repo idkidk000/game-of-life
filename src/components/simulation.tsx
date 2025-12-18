@@ -32,8 +32,8 @@ export function Simulation() {
 
       // render sim
       const { dirty, live } = simRef.current.stats();
-      for (const [x, y, value] of simRef.current.deltas()) {
-        context.fillStyle = value ? `hsl(${value} 50% 50% / 100%)` : 'hsl(0 0% 0% / 100%)';
+      for (const [x, y, age, neighbours] of simRef.current.deltas()) {
+        context.fillStyle = age ? `hsl(${age} ${neighbours * 12}% 50% / 100%)` : 'hsl(0 0% 0% / 100%)';
         context.fillRect(x, y, 1, 1);
       }
 
