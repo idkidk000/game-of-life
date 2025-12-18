@@ -133,7 +133,7 @@ export class GameOfLife {
     let live = 0;
     for (let i = 0; i < this.#dirty.length; ++i) {
       if (this.#dirty[i]) ++dirty;
-      if (this.#current[i] > 0) ++live;
+      if (this.#current[i] >> 4 > 0) ++live;
     }
     return { dirty, live };
   }
