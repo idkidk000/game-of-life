@@ -71,7 +71,6 @@
   }
   canvas {
     @apply size-full border-3 rounded-lg border-accent bg-background;
-    image-rendering: pixelated;
   }
   menu {
     @apply border-3 rounded-lg border-accent bg-background;

@@ -1,13 +1,14 @@
 import { type MouseEvent, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { Command, useControls } from '@/hooks/controls';
 import { type SimRules, Simulation } from '@/lib/simulation';
+import { SlidingWindow } from '@/lib/sliding-window';
 
 export function Renderer() {
   const { controls, controlsRef, setControls, commandsRef } = useControls();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const simRef = useRef<Simulation>(null);
   // single-stepping is done outside of the render loop
-  const lastStepDurationRef = useRef(0);
+  const stepTimes = useRef(new SlidingWindow<number>(100));
 
   // animation loop
   // biome-ignore lint/correctness/useExhaustiveDependencies: controlsRef is a ref you silly goose
@@ -27,22 +28,53 @@ export function Renderer() {
     if (!context) return;
     const abortController = new AbortController();
     const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    let lastFrameTime = 0;
+    const frameTimes = new SlidingWindow<number>(100);
 
     const render = (time: number) => {
       if (!simRef.current) return;
       if (!canvasRef.current) return;
+      frameTimes.push(time);
       const simWidth = Math.round(canvasRef.current.width * controlsRef.current.scale);
       const simHeight = Math.round(canvasRef.current.height * controlsRef.current.scale);
       if (simRef.current.width !== simWidth || simRef.current.height !== simHeight) simRef.current.updateSize(simWidth, simHeight);
-      if (!controlsRef.current.paused) lastStepDurationRef.current = simRef.current.step(controlsRef.current.speed);
+      if (!controlsRef.current.paused) stepTimes.current.push(simRef.current.step(controlsRef.current.speed));
 
       const { alive, steps } = simRef.current.stats();
       const lightness = `${darkQuery.matches ? '70' : '30'}%`;
 
+      // i would like this to be lower down but biome disagrees
+      // this is a much nicer bloom-like effect but it really tanks performance
+      /*       const pixel = Math.ceil(1 / controlsRef.current.scale);
+      // render sim
+      for (let pass = 0; pass < (controlsRef.current.bloom ? 2 : 1); ++pass) {
+        context.filter = controlsRef.current.bloom && pass === 0 ? 'blur(4px)' : 'none';
+        for (const [x, y, age, neighbours] of simRef.current.values()) {
+          const canvasX = Math.round(x / controlsRef.current.scale);
+          const canvasY = Math.round(y / controlsRef.current.scale);
+          context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness})`;
+          context.fillRect(canvasX, canvasY, pixel, pixel);
+        }
+      } */
       // clear the whole bg
       context.fillStyle = `hsl(0 0% ${darkQuery.matches ? '0' : '100'}%)`;
       context.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+      if (controlsRef.current.bloom) {
+        const first = Math.ceil((1 / controlsRef.current.scale) * 3);
+        for (const [x, y, age, neighbours] of simRef.current.values()) {
+          const canvasX = Math.round((x - 1) / controlsRef.current.scale);
+          const canvasY = Math.round((y - 1) / controlsRef.current.scale);
+          context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness} / 10%)`;
+          context.fillRect(canvasX, canvasY, first, first);
+        }
+        const second = Math.ceil((1 / controlsRef.current.scale) * 2);
+        for (const [x, y, age, neighbours] of simRef.current.values()) {
+          const canvasX = Math.round((x - 0.5) / controlsRef.current.scale);
+          const canvasY = Math.round((y - 0.5) / controlsRef.current.scale);
+          context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness} / 20%)`;
+          context.fillRect(canvasX, canvasY, second, second);
+        }
+      }
 
       const pixel = Math.ceil(1 / controlsRef.current.scale);
       // render sim
@@ -57,11 +89,13 @@ export function Renderer() {
       context.font = '30px monospace';
       context.fillStyle = `hsl(0 0% ${darkQuery.matches ? '0' : '100'}% / 70%)`;
 
-      const frameRate = 1000 / (time - lastFrameTime);
+      // this is faking accuracy since performance.now() is an integer in the frontend
+      const stepTime = stepTimes.current.items().reduce((acc, item) => acc + item, 0) / stepTimes.current.size;
+      const frameRate = (1000 / ((frameTimes.at(-1) ?? 0) - (frameTimes.at(0) ?? 0))) * (frameTimes.size - 1);
 
       const labels = [
         { text: `Step ${steps.toLocaleString()}`, hue: 50 },
-        { text: `${lastStepDurationRef.current.toFixed(1)} ms`, hue: 150 },
+        { text: `${stepTime.toFixed(1)} ms`, hue: 150 },
         { text: `${frameRate.toFixed(1)} fps`, hue: 200 },
         { text: `${alive.toLocaleString()} alive`, hue: 250 },
       ].map((item) => {
@@ -100,7 +134,6 @@ export function Renderer() {
       }
 
       if (!abortController.signal.aborted) requestAnimationFrame(render);
-      lastFrameTime = time;
     };
 
     requestAnimationFrame(render);
@@ -178,7 +211,7 @@ export function Renderer() {
   useEffect(() => {
     return commandsRef.current.subscribe(Command.Step, () => {
       if (!simRef.current) return;
-      lastStepDurationRef.current = simRef.current.step(1);
+      stepTimes.current.push(simRef.current.step(1));
     });
   }, []);
 

@@ -8,6 +8,7 @@ export interface Controls {
   scale: number;
   spawn: SimSpawn & { enabled: boolean };
   rules: SimRules;
+  bloom: boolean;
 }
 
 export const controlDefaults: Controls = {
@@ -16,6 +17,7 @@ export const controlDefaults: Controls = {
   scale: 0.3,
   spawn: { ...defaultSpawnConfig, enabled: defaultSpawnConfig.chance > 0 },
   rules: defaultGameRules,
+  bloom: false,
 };
 
 export enum Command {

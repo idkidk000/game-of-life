@@ -13,21 +13,23 @@ export function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   // states
-  const handleSpawnEnabledChange = useCallback((value: boolean) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, enabled: value } })), [setControls]);
+  const handleBloomChange = useCallback((bloom: boolean) => setControls((prev) => ({ ...prev, bloom })), [setControls]);
 
-  const handleScaleChange = useCallback((value: number) => setControls((prev) => ({ ...prev, scale: value, paused: false })), [setControls]);
+  const handleSpawnEnabledChange = useCallback((enabled: boolean) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, enabled } })), [setControls]);
 
-  const handleSpawnRadiusChange = useCallback((value: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, radius: value }, paused: false })), [setControls]);
+  const handleScaleChange = useCallback((scale: number) => setControls((prev) => ({ ...prev, scale, paused: false })), [setControls]);
 
-  const handleSpawnChanceChange = useCallback((value: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, chance: value }, paused: false })), [setControls]);
+  const handleSpawnRadiusChange = useCallback((radius: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, radius }, paused: false })), [setControls]);
 
-  const handleSpeedChange = useCallback((value: number) => setControls((prev) => ({ ...prev, speed: value, paused: false })), [setControls]);
+  const handleSpawnChanceChange = useCallback((chance: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, chance }, paused: false })), [setControls]);
+
+  const handleSpeedChange = useCallback((speed: number) => setControls((prev) => ({ ...prev, speed, paused: false })), [setControls]);
 
   const handleRulesChange = useCallback((rules: ControlsType['rules']) => setControls((prev) => ({ ...prev, rules })), [setControls]);
 
   const handlePausedClick = useCallback(() => setControls((prev) => ({ ...prev, paused: !prev.paused })), [setControls]);
 
-  const handleResetClick = useCallback(() => setControls((prev) => ({ ...prev, ...controlDefaults })), [setControls]);
+  const handleResetClick = useCallback(() => setControls(() => ({ ...controlDefaults })), [setControls]);
 
   const handleMenuClick = useCallback(() => setMenuOpen((prev) => !prev), []);
 
@@ -106,6 +108,7 @@ export function Nav() {
             <Range label='Radius' title='Spawn radius' min={3} max={15} step={1} decimals={0} unit='px' value={controls.spawn.radius} onValueChange={handleSpawnRadiusChange} />
           </div>
           <Rules onValueChange={handleRulesChange} values={controls.rules} />
+          <Checkbox label='Bloom' title='Bloom filter' onValueChange={handleBloomChange} value={controls.bloom} />
         </div>
       </Menu>
     </>
