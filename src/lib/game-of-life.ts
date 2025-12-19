@@ -1,22 +1,47 @@
+export interface GameRules {
+  born: (0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8)[];
+  survive: (0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8)[];
+}
+
+export interface SpawnConfig {
+  radius: number;
+  /** percent */
+  chance: number;
+}
+
+export const defaultGameRules: GameRules = {
+  born: [3],
+  survive: [2, 3],
+};
+
+export const defaultSpawnConfig: SpawnConfig = {
+  chance: 1.6,
+  radius: 15,
+};
+
 export class GameOfLife {
   #width: number;
   #height: number;
   /** structure:\
    * 12-15: unused\
    *  4-11: age\
-   *  0- 3: neighboursAlive
+   *  0- 3: neighbours
    */
   #current: Uint16Array;
   #next: Uint16Array;
-  #dirty: boolean[];
-  /** guards against iterating over `#dirty` unnecessarily in `deltas` iterator */
-  #isDirty = true;
-  constructor(width: number, height: number) {
+  #steps = 0;
+  /** bitmask shifted 1 left so 0 can be a distinct value */
+  #born = 0;
+  #survive = 0;
+  #spawn: SpawnConfig = { ...defaultSpawnConfig };
+  #hasResized = false;
+  constructor(width: number, height: number, rules: GameRules = defaultGameRules, spawn: SpawnConfig = defaultSpawnConfig) {
     this.#width = width;
     this.#height = height;
     this.#current = new Uint16Array(width * height);
     this.#next = new Uint16Array(width * height);
-    this.#dirty = new Array<boolean>(width * height).fill(true);
+    this.updateSpawn(spawn);
+    this.updateRules(rules);
   }
   get width() {
     return this.#width;
@@ -27,13 +52,26 @@ export class GameOfLife {
   get size() {
     return this.#width * this.#height;
   }
+  get steps() {
+    return this.#steps;
+  }
+  get hasResized() {
+    return this.#hasResized;
+  }
   #indexToXy(index: number): [x: number, y: number] {
     return [index % this.#width, Math.floor(index / this.#width)];
   }
   #xyToIndex(x: number, y: number): number {
     return (y < 0 ? this.#height + y : y >= this.#height ? this.#height - y : y) * this.#width + (x < 0 ? this.#width + x : x >= this.#width ? this.#width - x : x);
   }
-  resize(width: number, height: number): void {
+  updateRules({ born, survive }: GameRules) {
+    this.#born = (born as number[]).reduce((acc, item) => acc | (1 << item), 0);
+    this.#survive = (survive as number[]).reduce((acc, item) => acc | (1 << item), 0);
+  }
+  updateSpawn(config: SpawnConfig) {
+    this.#spawn = { ...config };
+  }
+  updateSize(width: number, height: number): void {
     if (width < 10) width = 10;
     if (height < 10) height = 10;
     const maxAge = Array.prototype.reduce.bind(this.#current)((acc, item) => Math.max(acc, item >> 4), 0);
@@ -45,8 +83,8 @@ export class GameOfLife {
       for (let i = 0; i < resized.length; ++i) {
         const resizedX = i % width;
         const resizedY = Math.floor(i / width);
-        const prevX = Math.floor((resizedX / width) * this.#width);
-        const prevY = Math.floor((resizedY / height) * this.#height);
+        const prevX = Math.round((resizedX / width) * this.#width);
+        const prevY = Math.round((resizedY / height) * this.#height);
         const prevIndex = this.#xyToIndex(prevX, prevY);
         const value = this.#current[prevIndex];
         resized[i] = value;
@@ -55,20 +93,21 @@ export class GameOfLife {
     this.#height = height;
     this.#current = resized;
     this.#next = new Uint16Array(width * height);
-    this.#dirty = new Array<boolean>(width * height).fill(true);
+    this.#hasResized = true;
   }
   clear(): void {
     this.#current.fill(0);
-    this.#dirty.fill(true);
+    this.#steps = 0;
   }
   fill(): void {
     // set a random neighbour count
     for (let i = 0; i < this.#current.length; ++i) this.#current[i] = (this.#current[i] & 0xff0) | Math.round(Math.random() * 8);
   }
-  spawn(x: number, y: number, radius = 5): void {
-    const radius2 = radius ** 2;
-    for (let rx = -radius; rx <= radius; ++rx)
-      for (let ry = -radius; ry <= radius; ++ry) {
+  spawn(x: number, y: number): void {
+    console.debug('spawn', { x, y });
+    const radius2 = this.#spawn.radius ** 2;
+    for (let rx = -this.#spawn.radius; rx <= this.#spawn.radius; ++rx)
+      for (let ry = -this.#spawn.radius; ry <= this.#spawn.radius; ++ry) {
         const dist2 = rx ** 2 + ry ** 2;
         if (dist2 > radius2) continue;
         const index = this.#xyToIndex(rx + x, ry + y);
@@ -76,11 +115,11 @@ export class GameOfLife {
         this.#current[index] = (this.#current[index] & 0xff0) | Math.round(Math.random() * 8);
       }
   }
-  erase(x: number, y: number, radius = 5): void {
+  erase(x: number, y: number): void {
     console.debug('erase', { x, y });
-    const radius2 = radius ** 2;
-    for (let rx = -radius; rx <= radius; ++rx)
-      for (let ry = -radius; ry <= radius; ++ry) {
+    const radius2 = this.#spawn.radius ** 2;
+    for (let rx = -this.#spawn.radius; rx <= this.#spawn.radius; ++rx)
+      for (let ry = -this.#spawn.radius; ry <= this.#spawn.radius; ++ry) {
         const dist2 = rx ** 2 + ry ** 2;
         if (dist2 > radius2) continue;
         const index = this.#xyToIndex(rx + x, ry + y);
@@ -88,70 +127,53 @@ export class GameOfLife {
         this.#current[index] = this.#current[index] & 0xff0;
       }
   }
-  #writeNext(index: number, age: number, alive: boolean): void {
-    const nextAge = alive ? Math.min(age + 1, 255) : 0;
-    if (age !== nextAge) {
-      // write new age, mark dirty
-      this.#dirty[index] = true;
-      const neighbourCount = this.#next[index] & 0xf;
-      const nextValue = (nextAge << 4) | neighbourCount;
-      this.#next[index] = nextValue;
-    }
-    if (nextAge > 0) {
-      // increment neighbour's neighbourAlive counts
-      const [x, y] = this.#indexToXy(index);
-      ++this.#next[this.#xyToIndex(x, y + 1)];
-      ++this.#next[this.#xyToIndex(x + 1, y + 1)];
-      ++this.#next[this.#xyToIndex(x + 1, y)];
-      ++this.#next[this.#xyToIndex(x + 1, y - 1)];
-      ++this.#next[this.#xyToIndex(x, y - 1)];
-      ++this.#next[this.#xyToIndex(x - 1, y - 1)];
-      ++this.#next[this.#xyToIndex(x - 1, y)];
-      ++this.#next[this.#xyToIndex(x - 1, y + 1)];
-    }
-  }
-  /** @returns performance duration in millis */
-  step(count = 1, randomSpawn = false): number {
+  /** @returns performance duration in whole millis since we don't have high precision timers on the client */
+  //TODO: add a local dirty array and use it to copy unchanged regions
+  //TODO: possibly just expose start/stop/singleStep methods and have the sim loop run async
+  step(count = 1): number {
     const started = performance.now();
     for (let iteration = 0; iteration < count; ++iteration) {
-      // simulate
+      if (this.#spawn.chance / 100 >= Math.random())
+        // outside of the loop so we don't interfere with neighbour count incrementing
+        // if this comment goes above `if (randomSpawn...`, biome helpfully DELETES THE IF CONDITION
+        this.spawn(...this.#indexToXy(Math.round(Math.random() * this.#current.length)));
+      // simulation loop
       for (let i = 0; i < this.#current.length; ++i) {
-        const value = this.#current[i];
-        const age = value >> 4;
-        const neighboursAlive = value & 0xf;
-        const isAlive = age > 0;
-        if (isAlive && neighboursAlive >= 2 && neighboursAlive <= 3) this.#writeNext(i, age, true);
-        else if (!isAlive && neighboursAlive === 3) this.#writeNext(i, age, true);
-        else if (randomSpawn && Math.random() > 0.999999) this.spawn(...this.#indexToXy(i));
-        // was alive, now dead - mark dirty
-        else if (isAlive) this.#dirty[i] = true;
+        const age = this.#current[i] >> 4;
+        const neighbours = this.#current[i] & 0xf;
+        const nextAlive = (age === 0 && (this.#born & (1 << neighbours)) > 0) || (age > 0 && (this.#survive & (1 << neighbours)) > 0);
+        const nextAge = nextAlive ? Math.min(age + 1, 255) : 0;
+        if (nextAge && nextAge !== age) this.#next[i] = (nextAge << 4) | (this.#next[i] & 0xf);
+        if (nextAlive) {
+          // increment neighbour's neighbour counts
+          const [x, y] = this.#indexToXy(i);
+          ++this.#next[this.#xyToIndex(x + 0, y + 1)];
+          ++this.#next[this.#xyToIndex(x + 1, y + 1)];
+          ++this.#next[this.#xyToIndex(x + 1, y + 0)];
+          ++this.#next[this.#xyToIndex(x + 1, y - 1)];
+          ++this.#next[this.#xyToIndex(x + 0, y - 1)];
+          ++this.#next[this.#xyToIndex(x - 1, y - 1)];
+          ++this.#next[this.#xyToIndex(x - 1, y + 0)];
+          ++this.#next[this.#xyToIndex(x - 1, y + 1)];
+        }
       }
-      // swap
+      // swap arrays
       [this.#current, this.#next] = [this.#next, this.#current];
       this.#next.fill(0);
-      this.#isDirty = true;
     }
+    this.#steps += count;
     return performance.now() - started;
   }
   /** age is 0-255, neighbours is 0-8 */
-  *deltas(): Generator<[x: number, y: number, age: number, neighbours: number], undefined, undefined> {
-    if (this.#isDirty) for (let i = 0; i < this.#dirty.length; ++i) if (this.#dirty[i]) yield [...this.#indexToXy(i), this.#current[i] >> 4, this.#current[i] & 0xf];
-    this.#dirty.fill(false);
-    this.#isDirty = false;
+  *values(all = false): Generator<[x: number, y: number, age: number, neighbours: number], undefined, undefined> {
+    for (let i = 0; i < this.#current.length; ++i) if (all || this.#current[i] & 0xff0) yield [...this.#indexToXy(i), this.#current[i] >> 4, this.#current[i] & 0xf];
+    this.#hasResized = false;
   }
-  /** age is 0-255, neighbours is 0-8 */
-  *values(): Generator<[x: number, y: number, age: number, neighbours: number], undefined, undefined> {
-    for (let i = 0; i < this.#current.length; ++i) yield [...this.#indexToXy(i), this.#current[i] >> 4, this.#current[i] & 0xf];
-    this.#dirty.fill(false);
-    this.#isDirty = false;
-  }
-  stats(): { dirty: number; live: number } {
-    let dirty = 0;
+  stats(): { live: number; steps: number; resized: boolean } {
     let live = 0;
-    for (let i = 0; i < this.#dirty.length; ++i) {
-      if (this.#dirty[i]) ++dirty;
-      if (this.#current[i] >> 4 > 0) ++live;
+    for (let i = 0; i < this.#current.length; ++i) {
+      if (this.#current[i] & 0xff0) ++live;
     }
-    return { dirty, live };
+    return { live, steps: this.#steps, resized: this.#hasResized };
   }
 }

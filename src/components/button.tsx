@@ -10,6 +10,7 @@ export function Button({
   onClick: () => unknown;
   disabled?: boolean;
   type?: ButtonHTMLAttributes<HTMLButtonElement>['type'];
+  className?: string;
 }) {
   return (
     <button type={type} {...props}>

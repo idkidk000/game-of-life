@@ -1,43 +1,35 @@
 import { createContext, type Dispatch, type ReactNode, type RefObject, type SetStateAction, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { EventEmitter } from '@/lib/event-emitter';
+import { defaultGameRules, defaultSpawnConfig, type GameRules, type SpawnConfig } from '@/lib/game-of-life';
 
 export interface Controls {
   paused: boolean;
   speed: number;
   scale: number;
-  random: boolean;
-  radius: number;
+  spawn: SpawnConfig & { enabled: boolean };
+  rules: GameRules;
 }
 
 export const controlDefaults: Controls = {
   paused: false,
   speed: 1,
   scale: 0.5,
-  random: true,
-  radius: 15,
+  spawn: { ...defaultSpawnConfig, enabled: defaultSpawnConfig.chance > 0 },
+  rules: defaultGameRules,
 };
 
-type Command = 'Step' | 'Clear' | 'Fill' | 'Save';
-
-type Callback = () => void;
-
-class CommandEmitter {
-  #callbacks = new Map<Command, Set<Callback>>();
-  emit(command: Command) {
-    for (const callback of this.#callbacks.get(command) ?? []) callback();
-  }
-  subscribe(command: Command, callback: Callback) {
-    if (!this.#callbacks.has(command)) this.#callbacks.set(command, new Set());
-    this.#callbacks.get(command)?.add(callback);
-    // useEffect destructor
-    return () => void this.#callbacks.get(command)?.delete(callback);
-  }
+export enum Command {
+  Step,
+  Clear,
+  Fill,
+  Save,
 }
 
 interface Context {
   controls: Controls;
   setControls: Dispatch<SetStateAction<Controls>>;
   controlsRef: RefObject<Controls>;
-  commandsRef: RefObject<CommandEmitter>;
+  commandsRef: RefObject<EventEmitter<Command>>;
 }
 
 const Context = createContext<Context | null>(null);
@@ -45,7 +37,7 @@ const Context = createContext<Context | null>(null);
 export function ControlsProvider({ children }: { readonly children: ReactNode }) {
   const [controls, setControls] = useState<Controls>(controlDefaults);
   const controlsRef = useRef<Controls>(controls);
-  const commandsRef = useRef(new CommandEmitter());
+  const commandsRef = useRef(new EventEmitter<Command>());
 
   useEffect(() => {
     controlsRef.current = controls;

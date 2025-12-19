@@ -54,14 +54,23 @@
   }
   .input-group {
     @apply flex gap-4 items-center rounded-lg p-2 shadow border-3 border-transparent transition-[border-color] duration-200;
-    &:has(:hover) {
-      @apply border-accent/50;
+    &:not(:has(:disabled)) {
+      &:has(:hover) {
+        @apply border-accent/50;
+      }
+      &:has(> :active) {
+        @apply border-accent;
+      }
     }
-    &:has(:active) {
-      @apply border-accent;
+    &:has(> :disabled) {
+      @apply text-foreground/50;
     }
   }
-  .img-pixel {
+  .control-group {
+    @apply flex flex-wrap gap-4 items-center;
+  }
+  canvas {
+    @apply size-full border-3 rounded-lg border-accent bg-background;
     image-rendering: pixelated;
   }
 }

@@ -4,3 +4,16 @@ export function omit<Item extends object, Key extends Extract<keyof Item, string
 export function pick<Item extends object, Key extends Extract<keyof Item, string>, Return extends Pick<Item, Key>>(item: Item, keys: Key[]): Return {
   return Object.fromEntries(Object.entries(item).filter(([key]) => keys.includes(key as Key))) as Return;
 }
+type Obj = Record<string | number | symbol, unknown>;
+export function objectIsEqual(a: Obj, b: Obj): boolean {
+  for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    if (!Object.hasOwn(a, key) || !Object.hasOwn(b, key)) return false;
+    if (typeof a[key] !== typeof b[key]) return false;
+    if (typeof a[key] === 'object') {
+      if (a[key] === null && b[key] === null) continue;
+      if (a[key] === null || b[key] === null) return false;
+      if (!objectIsEqual(a[key] as Obj, b[key] as Obj)) return false;
+    } else if (a[key] !== b[key]) return false;
+  }
+  return true;
+}
