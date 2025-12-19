@@ -1,19 +1,19 @@
 import { createContext, type Dispatch, type ReactNode, type RefObject, type SetStateAction, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { EventEmitter } from '@/lib/event-emitter';
-import { defaultGameRules, defaultSpawnConfig, type GameRules, type SpawnConfig } from '@/lib/game-of-life';
+import { defaultGameRules, defaultSpawnConfig, type SimRules, type SimSpawn } from '@/lib/simulation';
 
 export interface Controls {
   paused: boolean;
   speed: number;
   scale: number;
-  spawn: SpawnConfig & { enabled: boolean };
-  rules: GameRules;
+  spawn: SimSpawn & { enabled: boolean };
+  rules: SimRules;
 }
 
 export const controlDefaults: Controls = {
   paused: false,
   speed: 1,
-  scale: 0.5,
+  scale: 0.3,
   spawn: { ...defaultSpawnConfig, enabled: defaultSpawnConfig.chance > 0 },
   rules: defaultGameRules,
 };

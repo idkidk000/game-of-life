@@ -1,25 +1,25 @@
-export interface GameRules {
+export interface SimRules {
   born: (0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8)[];
   survive: (0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8)[];
 }
 
-export interface SpawnConfig {
+export interface SimSpawn {
   radius: number;
   /** percent */
   chance: number;
 }
 
-export const defaultGameRules: GameRules = {
+export const defaultGameRules: SimRules = {
   born: [3],
   survive: [2, 3],
 };
 
-export const defaultSpawnConfig: SpawnConfig = {
+export const defaultSpawnConfig: SimSpawn = {
   chance: 1.6,
   radius: 15,
 };
 
-export class GameOfLife {
+export class Simulation {
   #width: number;
   #height: number;
   /** structure:\
@@ -33,9 +33,9 @@ export class GameOfLife {
   /** bitmask shifted 1 left so 0 can be a distinct value */
   #born = 0;
   #survive = 0;
-  #spawn: SpawnConfig = { ...defaultSpawnConfig };
+  #spawn: SimSpawn = { ...defaultSpawnConfig };
   #hasResized = false;
-  constructor(width: number, height: number, rules: GameRules = defaultGameRules, spawn: SpawnConfig = defaultSpawnConfig) {
+  constructor(width: number, height: number, rules: SimRules = defaultGameRules, spawn: SimSpawn = defaultSpawnConfig) {
     this.#width = width;
     this.#height = height;
     this.#current = new Uint16Array(width * height);
@@ -64,11 +64,11 @@ export class GameOfLife {
   #xyToIndex(x: number, y: number): number {
     return (y < 0 ? this.#height + y : y >= this.#height ? this.#height - y : y) * this.#width + (x < 0 ? this.#width + x : x >= this.#width ? this.#width - x : x);
   }
-  updateRules({ born, survive }: GameRules) {
+  updateRules({ born, survive }: SimRules) {
     this.#born = (born as number[]).reduce((acc, item) => acc | (1 << item), 0);
     this.#survive = (survive as number[]).reduce((acc, item) => acc | (1 << item), 0);
   }
-  updateSpawn(config: SpawnConfig) {
+  updateSpawn(config: SimSpawn) {
     this.#spawn = { ...config };
   }
   updateSize(width: number, height: number): void {
@@ -169,11 +169,11 @@ export class GameOfLife {
     for (let i = 0; i < this.#current.length; ++i) if (all || this.#current[i] & 0xff0) yield [...this.#indexToXy(i), this.#current[i] >> 4, this.#current[i] & 0xf];
     this.#hasResized = false;
   }
-  stats(): { live: number; steps: number; resized: boolean } {
-    let live = 0;
+  stats(): { alive: number; steps: number; resized: boolean } {
+    let alive = 0;
     for (let i = 0; i < this.#current.length; ++i) {
-      if (this.#current[i] & 0xff0) ++live;
+      if (this.#current[i] & 0xff0) ++alive;
     }
-    return { live, steps: this.#steps, resized: this.#hasResized };
+    return { alive, steps: this.#steps, resized: this.#hasResized };
   }
 }

@@ -1,13 +1,11 @@
 import { type MouseEvent, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { Command, useControls } from '@/hooks/controls';
-import { GameOfLife, type GameRules } from '@/lib/game-of-life';
+import { type SimRules, Simulation } from '@/lib/simulation';
 
-const LABELS_HEIGHT = 20;
-
-export function Simulation() {
+export function Renderer() {
   const { controls, controlsRef, setControls, commandsRef } = useControls();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const simRef = useRef<GameOfLife>(null);
+  const simRef = useRef<Simulation>(null);
   // single-stepping is done outside of the render loop
   const lastStepDurationRef = useRef(0);
 
@@ -16,53 +14,93 @@ export function Simulation() {
   useEffect(() => {
     if (!canvasRef.current) return;
     if (!simRef.current)
-      simRef.current = new GameOfLife(canvasRef.current.width, canvasRef.current.height - LABELS_HEIGHT, controls.rules, {
-        ...controls.spawn,
-        chance: controls.spawn.enabled ? controls.spawn.chance : 0,
-      });
+      simRef.current = new Simulation(
+        Math.round(canvasRef.current.width * controlsRef.current.scale),
+        Math.round(canvasRef.current.height * controlsRef.current.scale),
+        controls.rules,
+        {
+          ...controls.spawn,
+          chance: controls.spawn.enabled ? controls.spawn.chance : 0,
+        },
+      );
     const context = canvasRef.current.getContext('2d', { alpha: false, desynchronized: true });
     if (!context) return;
     const abortController = new AbortController();
     const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    let lastFrameTime = 0;
 
-    const render = (_time: number) => {
+    const render = (time: number) => {
       if (!simRef.current) return;
       if (!canvasRef.current) return;
-      if (simRef.current.width !== canvasRef.current.width || simRef.current.height !== canvasRef.current.height - LABELS_HEIGHT)
-        // handle canvas resize
-        simRef.current.updateSize(canvasRef.current.width, canvasRef.current.height - LABELS_HEIGHT);
-      if (!controlsRef.current.paused)
-        // step
-        lastStepDurationRef.current = simRef.current.step(controlsRef.current.speed);
+      const simWidth = Math.round(canvasRef.current.width * controlsRef.current.scale);
+      const simHeight = Math.round(canvasRef.current.height * controlsRef.current.scale);
+      if (simRef.current.width !== simWidth || simRef.current.height !== simHeight) simRef.current.updateSize(simWidth, simHeight);
+      if (!controlsRef.current.paused) lastStepDurationRef.current = simRef.current.step(controlsRef.current.speed);
 
-      const { live, steps } = simRef.current.stats();
+      const { alive, steps } = simRef.current.stats();
       const lightness = `${darkQuery.matches ? '70' : '30'}%`;
-      const background = `hsl(0 0% ${darkQuery.matches ? '0' : '100'}% / 100%`;
 
       // clear the whole bg
-      context.fillStyle = background;
+      context.fillStyle = `hsl(0 0% ${darkQuery.matches ? '0' : '100'}%)`;
       context.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
+      const pixel = Math.ceil(1 / controlsRef.current.scale);
       // render sim
       for (const [x, y, age, neighbours] of simRef.current.values()) {
-        context.fillStyle = age ? `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness} / 100%)` : background;
-        context.fillRect(x, y, 1, 1);
+        const canvasX = Math.round(x / controlsRef.current.scale);
+        const canvasY = Math.round(y / controlsRef.current.scale);
+        context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness})`;
+        context.fillRect(canvasX, canvasY, pixel, pixel);
       }
 
       // render labels
-      context.fillStyle = `hsl(50 50% ${lightness} / 100%)`;
-      context.fillText(steps.toLocaleString(), 5, canvasRef.current.height - 5);
+      context.font = '30px monospace';
+      context.fillStyle = `hsl(0 0% ${darkQuery.matches ? '0' : '100'}% / 70%)`;
 
-      context.fillStyle = `hsl(150 50% ${lightness} / 100%)`;
-      context.fillText(lastStepDurationRef.current.toFixed(3), canvasRef.current.width / 3 - 20, canvasRef.current.height - 5);
+      const frameRate = 1000 / (time - lastFrameTime);
 
-      // context.fillStyle = `hsl(200 50% ${lightness} / 100%)`;
-      // context.fillText(dirty.toLocaleString(), (canvasRef.current.width / 3) * 2 - 20, canvasRef.current.height - 5);
+      const labels = [
+        { text: `Step ${steps.toLocaleString()}`, hue: 50 },
+        { text: `${lastStepDurationRef.current.toFixed(1)} ms`, hue: 150 },
+        { text: `${frameRate.toFixed(1)} fps`, hue: 200 },
+        { text: `${alive.toLocaleString()} alive`, hue: 250 },
+      ].map((item) => {
+        const { width } = context.measureText(item.text);
+        return { ...item, width };
+      });
 
-      context.fillStyle = `hsl(250 50% ${lightness} / 100%)`;
-      context.fillText(live.toLocaleString(), canvasRef.current.width - 45, canvasRef.current.height - 5);
+      // if i put any comments above or iniside the if/else block below, biome helpfully breaks my code
+      // there are conditions for single row, 2 columns, and single column depending upon max label width
+      // the magic numbers are 50px line height (font size is 30px) so 10px above and below
+      // fillText origin is bottom left
+      const maxWidth = labels.reduce((acc, item) => Math.max(acc, item.width), 0);
+
+      if (maxWidth < canvasRef.current.width / 4) {
+        context.fillRect(0, canvasRef.current.height - 50, canvasRef.current.width, 50);
+        for (const [l, label] of labels.entries()) {
+          context.fillStyle = `hsl(${label.hue} 80% ${lightness})`;
+          context.fillText(label.text, (canvasRef.current.width / 4) * l + (canvasRef.current.width / 4 - label.width) / 2, canvasRef.current.height - 10);
+        }
+      } else if (maxWidth < canvasRef.current.width / 2) {
+        context.fillRect(0, canvasRef.current.height - 100, canvasRef.current.width, 100);
+        for (const [l, label] of labels.entries()) {
+          context.fillStyle = `hsl(${label.hue} 80% ${lightness})`;
+          context.fillText(
+            label.text,
+            (l % 2 === 1 ? canvasRef.current.width / 2 : 0) + (canvasRef.current.width / 2 - label.width) / 2,
+            canvasRef.current.height - 50 + Math.floor(l / 2) * 50 - 10,
+          );
+        }
+      } else {
+        context.fillRect(0, canvasRef.current.height - 200, canvasRef.current.width, 200);
+        for (const [l, label] of labels.entries()) {
+          context.fillStyle = `hsl(${label.hue} 80% ${lightness})`;
+          context.fillText(label.text, (canvasRef.current.width - label.width) / 2, canvasRef.current.height - 150 + l * 50 - 10);
+        }
+      }
 
       if (!abortController.signal.aborted) requestAnimationFrame(render);
+      lastFrameTime = time;
     };
 
     requestAnimationFrame(render);
@@ -71,7 +109,6 @@ export function Simulation() {
   }, []);
 
   // resize the canvas to fit the element
-  // needs controls.scale as a dep so the slider works
   useLayoutEffect(() => {
     if (!canvasRef.current) return;
     const element = canvasRef.current;
@@ -79,14 +116,14 @@ export function Simulation() {
     const observer = new ResizeObserver((entries) => {
       const [{ contentRect }] = entries;
       const { width, height } = contentRect;
-      element.width = Math.round(width * controls.scale);
-      element.height = Math.round(height * controls.scale);
+      element.width = Math.round(width);
+      element.height = Math.round(height);
     });
 
     observer.observe(element);
 
     return () => observer.unobserve(element);
-  }, [controls.scale]);
+  }, []);
 
   // control handlers
 
@@ -97,7 +134,7 @@ export function Simulation() {
 
   // rules
   useEffect(() => {
-    simRef.current?.updateRules(controls.rules as GameRules);
+    simRef.current?.updateRules(controls.rules as SimRules);
   }, [controls.rules]);
 
   // command handlers
@@ -148,7 +185,7 @@ export function Simulation() {
   // canvas event handlers
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: controlsRef is a ref you silly goose
-  const clientXyToCanvasXy = useCallback(({ clientX, clientY }: { clientX: number; clientY: number }): [canvasX: number, canvasY: number] => {
+  const clientXyToSimXy = useCallback(({ clientX, clientY }: { clientX: number; clientY: number }): [canvasX: number, canvasY: number] => {
     if (!canvasRef.current) throw new Error('oh no');
     const canvasRect = canvasRef.current.getBoundingClientRect();
     const canvasX = Math.max(0, Math.round((clientX - canvasRect.x) * controlsRef.current.scale));
@@ -160,10 +197,10 @@ export function Simulation() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: controlsRef is a ref you silly goose
   const handleClick = useCallback(
     (event: MouseEvent<HTMLCanvasElement>) => {
-      simRef.current?.spawn(...clientXyToCanvasXy(event));
+      simRef.current?.spawn(...clientXyToSimXy(event));
       if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
     },
-    [clientXyToCanvasXy, setControls],
+    [clientXyToSimXy, setControls],
   );
 
   // right-click to erase
@@ -171,10 +208,10 @@ export function Simulation() {
   const handleRightClick = useCallback(
     (event: MouseEvent<HTMLCanvasElement>) => {
       event.preventDefault();
-      simRef.current?.erase(...clientXyToCanvasXy(event));
+      simRef.current?.erase(...clientXyToSimXy(event));
       if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
     },
-    [clientXyToCanvasXy, setControls],
+    [clientXyToSimXy, setControls],
   );
 
   // drag to spawn, right-drag to erase
@@ -182,10 +219,10 @@ export function Simulation() {
   const handleMouseMove = useCallback(
     (event: MouseEvent<HTMLCanvasElement>) => {
       if (!event.buttons) return;
-      simRef.current?.[event.buttons & 0x1 ? 'spawn' : 'erase'](...clientXyToCanvasXy(event));
+      simRef.current?.[event.buttons & 0x1 ? 'spawn' : 'erase'](...clientXyToSimXy(event));
       if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
     },
-    [clientXyToCanvasXy, setControls],
+    [clientXyToSimXy, setControls],
   );
 
   return <canvas ref={canvasRef} onMouseMove={handleMouseMove} onClick={handleClick} onContextMenu={handleRightClick} />;

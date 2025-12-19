@@ -58,11 +58,11 @@
       &:has(:hover) {
         @apply border-accent/50;
       }
-      &:has(> :active) {
+      &:has(:active) {
         @apply border-accent;
       }
     }
-    &:has(> :disabled) {
+    &:has(:disabled) {
       @apply text-foreground/50;
     }
   }
@@ -72,5 +72,8 @@
   canvas {
     @apply size-full border-3 rounded-lg border-accent bg-background;
     image-rendering: pixelated;
+  }
+  menu {
+    @apply border-3 rounded-lg border-accent bg-background;
   }
 }
