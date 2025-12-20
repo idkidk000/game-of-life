@@ -9,5 +9,5 @@ if (!root) throw new Error('could not find root node');
 createRoot(root).render(
   <StrictMode>
     <Page />
-  </StrictMode>,
+  </StrictMode>
 );

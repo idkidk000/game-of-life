@@ -1,30 +1,31 @@
 import { createContext, type Dispatch, type ReactNode, type RefObject, type SetStateAction, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { EventEmitter } from '@/lib/event-emitter';
-import { defaultGameRules, defaultSpawnConfig, type SimRules, type SimSpawn } from '@/lib/simulation';
+import { defaultSimRules, defaultSimSpawn, type SimRules, type SimSpawn } from '@/lib/simulation';
 
 export interface Controls {
+  bloom: boolean;
   paused: boolean;
-  speed: number;
+  rules: SimRules;
   scale: number;
   spawn: SimSpawn & { enabled: boolean };
-  rules: SimRules;
-  bloom: boolean;
+  speed: number;
 }
 
 export const controlDefaults: Controls = {
+  bloom: true,
   paused: false,
-  speed: 1,
+  rules: defaultSimRules,
   scale: 0.3,
-  spawn: { ...defaultSpawnConfig, enabled: defaultSpawnConfig.chance > 0 },
-  rules: defaultGameRules,
-  bloom: false,
+  spawn: { ...defaultSimSpawn, enabled: defaultSimSpawn.chance > 0 },
+  speed: 1,
 };
 
 export enum Command {
-  Step,
   Clear,
-  Fill,
+  Prune,
   Save,
+  Seed,
+  Step,
 }
 
 interface Context {

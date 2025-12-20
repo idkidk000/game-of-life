@@ -43,7 +43,10 @@ export class SlidingWindow<Item> {
     for (let i = 0; i < this.#size - 1; ++i) {
       const left = this.#front + i;
       const right = left + 1;
-      yield [this.#array[left < this.#array.length ? left : left - this.#array.length], this.#array[right < this.#array.length ? right : right - this.#array.length]];
+      yield [
+        this.#array[left < this.#array.length ? left : left - this.#array.length],
+        this.#array[right < this.#array.length ? right : right - this.#array.length],
+      ];
     }
   }
 }

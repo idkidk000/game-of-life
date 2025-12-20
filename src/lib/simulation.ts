@@ -1,6 +1,8 @@
+export type SimRule = (0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8)[];
+
 export interface SimRules {
-  born: (0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8)[];
-  survive: (0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8)[];
+  born: SimRule;
+  survive: SimRule;
 }
 
 export interface SimSpawn {
@@ -9,12 +11,12 @@ export interface SimSpawn {
   chance: number;
 }
 
-export const defaultGameRules: SimRules = {
+export const defaultSimRules: SimRules = {
   born: [3],
   survive: [2, 3],
 };
 
-export const defaultSpawnConfig: SimSpawn = {
+export const defaultSimSpawn: SimSpawn = {
   chance: 1.6,
   radius: 15,
 };
@@ -33,9 +35,8 @@ export class Simulation {
   /** bitmask shifted 1 left so 0 can be a distinct value */
   #born = 0;
   #survive = 0;
-  #spawn: SimSpawn = { ...defaultSpawnConfig };
-  #hasResized = false;
-  constructor(width: number, height: number, rules: SimRules = defaultGameRules, spawn: SimSpawn = defaultSpawnConfig) {
+  #spawn: SimSpawn = { ...defaultSimSpawn };
+  constructor(width: number, height: number, rules: SimRules = defaultSimRules, spawn: SimSpawn = defaultSimSpawn) {
     this.#width = width;
     this.#height = height;
     this.#current = new Uint16Array(width * height);
@@ -55,14 +56,19 @@ export class Simulation {
   get steps() {
     return this.#steps;
   }
-  get hasResized() {
-    return this.#hasResized;
-  }
   #indexToXy(index: number): [x: number, y: number] {
     return [index % this.#width, Math.floor(index / this.#width)];
   }
   #xyToIndex(x: number, y: number): number {
-    return (y < 0 ? this.#height + y : y >= this.#height ? this.#height - y : y) * this.#width + (x < 0 ? this.#width + x : x >= this.#width ? this.#width - x : x);
+    return (
+      (y < 0 ? this.#height + y
+      : y >= this.#height ? this.#height - y
+      : y)
+        * this.#width
+      + (x < 0 ? this.#width + x
+      : x >= this.#width ? this.#width - x
+      : x)
+    );
   }
   updateRules({ born, survive }: SimRules) {
     this.#born = (born as number[]).reduce((acc, item) => acc | (1 << item), 0);
@@ -74,12 +80,10 @@ export class Simulation {
   updateSize(width: number, height: number): void {
     if (width < 10) width = 10;
     if (height < 10) height = 10;
-    const maxAge = Array.prototype.reduce.bind(this.#current)((acc, item) => Math.max(acc, item >> 4), 0);
-    console.debug('sim resizing from', this.#width, 'x', this.#height, 'to', width, 'x', height, { maxAge });
+    console.debug('sim resizing from', this.#width, 'x', this.#height, 'to', width, 'x', height);
     const resized = new Uint16Array(width * height);
-    if (maxAge > 5)
-      // there's a bug where the first resize (page load) results in #current being filled with noise. subsequent resizes work fine
-      // this comment should be above `if (maxAge...` but biome disagrees
+    // there's a bug where the first resize (page load) results in #current being filled with noise. subsequent resizes work fine
+    if (this.#current.some((value) => value > 5))
       for (let i = 0; i < resized.length; ++i) {
         const resizedX = i % width;
         const resizedY = Math.floor(i / width);
@@ -93,13 +97,12 @@ export class Simulation {
     this.#height = height;
     this.#current = resized;
     this.#next = new Uint16Array(width * height);
-    this.#hasResized = true;
   }
   clear(): void {
     this.#current.fill(0);
     this.#steps = 0;
   }
-  fill(): void {
+  seed(): void {
     // set a random neighbour count
     for (let i = 0; i < this.#current.length; ++i) this.#current[i] = (this.#current[i] & 0xff0) | Math.round(Math.random() * 8);
   }
@@ -123,13 +126,19 @@ export class Simulation {
         const dist2 = rx ** 2 + ry ** 2;
         if (dist2 > radius2) continue;
         const index = this.#xyToIndex(rx + x, ry + y);
-        // clear neighbour count
-        this.#current[index] = this.#current[index] & 0xff0;
+        this.#current[index] = this.#current[index] = 0;
       }
   }
+  prune(): void {
+    let maxAge = 0;
+    for (let i = 0; i < this.#current.length; ++i) maxAge = Math.max(maxAge, this.#current[i] >> 4);
+    const pruneAge = Math.round(maxAge * 0.5);
+    console.debug('prune', { maxAge, pruneAge });
+    for (let i = 0; i < this.#current.length; ++i) if (this.#current[i] >> 4 >= pruneAge) this.#current[i] = 0;
+  }
   /** @returns performance duration in whole millis since we don't have high precision timers on the client */
-  //TODO: add a local dirty array and use it to copy unchanged regions
-  //TODO: possibly just expose start/stop/singleStep methods and have the sim loop run async
+  // TODO: add a local dirty array and use it to copy unchanged regions
+  // TODO: possibly just expose start/stop/singleStep methods and have the sim loop run async
   step(count = 1): number {
     const started = performance.now();
     for (let iteration = 0; iteration < count; ++iteration) {
@@ -141,10 +150,15 @@ export class Simulation {
       for (let i = 0; i < this.#current.length; ++i) {
         const age = this.#current[i] >> 4;
         const neighbours = this.#current[i] & 0xf;
+        // TODO: remove after debug
+        if (neighbours > 8) throw new Error('oh no');
         const nextAlive = (age === 0 && (this.#born & (1 << neighbours)) > 0) || (age > 0 && (this.#survive & (1 << neighbours)) > 0);
-        const nextAge = nextAlive ? Math.min(age + 1, 255) : 0;
-        if (nextAge && nextAge !== age) this.#next[i] = (nextAge << 4) | (this.#next[i] & 0xf);
         if (nextAlive) {
+          const nextAge = nextAlive ? Math.min(age + 1, 255) : 0;
+          // write nextAge and preserve nextNeighbours
+          if (nextAge !== age) this.#next[i] = (nextAge << 4) | (this.#next[i] & 0xf);
+          // TODO: remove after debug
+          if (nextAge < age) throw new Error('oh no');
           // increment neighbour's neighbour counts
           const [x, y] = this.#indexToXy(i);
           ++this.#next[this.#xyToIndex(x + 0, y + 1)];
@@ -155,7 +169,8 @@ export class Simulation {
           ++this.#next[this.#xyToIndex(x - 1, y - 1)];
           ++this.#next[this.#xyToIndex(x - 1, y + 0)];
           ++this.#next[this.#xyToIndex(x - 1, y + 1)];
-        }
+          // TODO: this might be a bug
+        } else if (age === 255) console.info('died', { i, age, neighbours, nextAlive }, this.#indexToXy(i));
       }
       // swap arrays
       [this.#current, this.#next] = [this.#next, this.#current];
@@ -166,14 +181,14 @@ export class Simulation {
   }
   /** age is 0-255, neighbours is 0-8 */
   *values(all = false): Generator<[x: number, y: number, age: number, neighbours: number], undefined, undefined> {
-    for (let i = 0; i < this.#current.length; ++i) if (all || this.#current[i] & 0xff0) yield [...this.#indexToXy(i), this.#current[i] >> 4, this.#current[i] & 0xf];
-    this.#hasResized = false;
+    for (let i = 0; i < this.#current.length; ++i)
+      if (all || this.#current[i] & 0xff0) yield [...this.#indexToXy(i), this.#current[i] >> 4, this.#current[i] & 0xf];
   }
-  stats(): { alive: number; steps: number; resized: boolean } {
+  stats(): { alive: number; steps: number } {
     let alive = 0;
     for (let i = 0; i < this.#current.length; ++i) {
       if (this.#current[i] & 0xff0) ++alive;
     }
-    return { alive, steps: this.#steps, resized: this.#hasResized };
+    return { alive, steps: this.#steps };
   }
 }
