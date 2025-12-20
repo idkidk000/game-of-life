@@ -1,6 +1,7 @@
 import { type MouseEvent, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { Command, useControls } from '@/hooks/controls';
-import { type SimRules, Simulation } from '@/lib/simulation';
+import { useTheme } from '@/hooks/theme';
+import { SimPrune, type SimRules, Simulation } from '@/lib/simulation';
 import { SlidingWindow } from '@/lib/sliding-window';
 
 export function Renderer() {
@@ -9,9 +10,10 @@ export function Renderer() {
   const simRef = useRef<Simulation>(null);
   // single-stepping is done outside of the render loop
   const stepTimes = useRef(new SlidingWindow<number>(100));
+  const { darkRef } = useTheme();
 
   // animation loop
-  // biome-ignore lint/correctness/useExhaustiveDependencies: controlsRef is a ref you silly goose
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref objects
   useEffect(() => {
     if (!canvasRef.current) return;
     if (!simRef.current)
@@ -30,7 +32,6 @@ export function Renderer() {
     });
     if (!context) return;
     const abortController = new AbortController();
-    const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const frameTimes = new SlidingWindow<number>(100);
 
     const render = (time: number) => {
@@ -44,10 +45,10 @@ export function Renderer() {
 
       if (!controlsRef.current.paused) stepTimes.current.push(simRef.current.step(controlsRef.current.speed));
 
-      const lightness = `${darkQuery.matches ? '70' : '30'}%`;
+      const lightness = `${darkRef.current ? '70' : '30'}%`;
 
       // clear the whole bg
-      context.fillStyle = `hsl(0 0% ${darkQuery.matches ? '0' : '100'}%)`;
+      context.fillStyle = `hsl(0 0% ${darkRef.current ? '0' : '100'}%)`;
       context.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
       // janky fake bloom until i learn how to use a webgl2 canvas
@@ -79,7 +80,7 @@ export function Renderer() {
 
       // render labels
       context.font = '30px monospace';
-      context.fillStyle = `hsl(0 0% ${darkQuery.matches ? '0' : '100'}% / 70%)`;
+      context.fillStyle = `hsl(0 0% ${darkRef.current ? '0' : '100'}% / 70%)`;
 
       const { alive, steps } = simRef.current.stats();
       // this is faking accuracy since performance.now() is an integer in the frontend
@@ -150,7 +151,7 @@ export function Renderer() {
 
     observer.observe(element);
 
-    return () => observer.unobserve(element);
+    return () => observer.disconnect();
   }, []);
 
   // control handlers
@@ -182,10 +183,25 @@ export function Renderer() {
     return commandsRef.current.subscribe(Command.Seed, () => simRef.current?.seed());
   }, []);
 
-  // prune
+  // prune youngest
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   useEffect(() => {
-    return commandsRef.current.subscribe(Command.Prune, () => simRef.current?.prune());
+    return commandsRef.current.subscribe(Command.PruneYoungest, () => simRef.current?.prune(SimPrune.Youngest));
+  }, []);
+
+  // prune oldest
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
+  useEffect(() => {
+    return commandsRef.current.subscribe(Command.PruneOldest, () => simRef.current?.prune(SimPrune.Oldest));
+  }, []);
+
+  // dump
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
+  useEffect(() => {
+    return commandsRef.current.subscribe(Command.Dump, () => {
+      if (!simRef.current) return;
+      console.debug(...simRef.current.values().map(([x, y, age, neighbours]) => ({ x, y, age, neighbours })));
+    });
   }, []);
 
   // save canvas img

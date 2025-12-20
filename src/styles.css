@@ -6,8 +6,6 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  --foreground: #000;
-  --background: #fff;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -15,16 +13,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground: #fff;
-    --background: #000;
-  }
-}
-
 @theme inline {
-  --color-foreground: var(--foreground);
-  --color-background: var(--background);
+  --color-foreground: light-dark(#000, #fff);
+  --color-background: light-dark(#fff, #000);
   --color-accent: var(--color-pink-500);
 }
 

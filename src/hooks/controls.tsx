@@ -22,10 +22,12 @@ export const controlDefaults: Controls = {
 
 export enum Command {
   Clear,
-  Prune,
+  PruneYoungest,
+  PruneOldest,
   Save,
   Seed,
   Step,
+  Dump,
 }
 
 interface Context {

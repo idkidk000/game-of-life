@@ -21,6 +21,11 @@ export const defaultSimSpawn: SimSpawn = {
   radius: 15,
 };
 
+export enum SimPrune {
+  Oldest,
+  Youngest,
+}
+
 export class Simulation {
   #width: number;
   #height: number;
@@ -118,6 +123,7 @@ export class Simulation {
         this.#current[index] = (this.#current[index] & 0xff0) | Math.round(Math.random() * 8);
       }
   }
+  /** remove by coordinate */
   erase(x: number, y: number): void {
     console.debug('erase', { x, y });
     const radius2 = this.#spawn.radius ** 2;
@@ -126,15 +132,36 @@ export class Simulation {
         const dist2 = rx ** 2 + ry ** 2;
         if (dist2 > radius2) continue;
         const index = this.#xyToIndex(rx + x, ry + y);
+        // clear the age and neighbour count. technically incorrect but faster than updating each cell's neighbours
         this.#current[index] = this.#current[index] = 0;
       }
   }
-  prune(): void {
-    let maxAge = 0;
-    for (let i = 0; i < this.#current.length; ++i) maxAge = Math.max(maxAge, this.#current[i] >> 4);
-    const pruneAge = Math.round(maxAge * 0.5);
-    console.debug('prune', { maxAge, pruneAge });
-    for (let i = 0; i < this.#current.length; ++i) if (this.#current[i] >> 4 >= pruneAge) this.#current[i] = 0;
+  /** remove by age */
+  prune(type: SimPrune = SimPrune.Oldest): void {
+    // mean of the min and max ages
+    const threshold =
+      this.#current
+        .map((value) => value >> 4)
+        .reduce((acc, item) => [Math.min(acc[0], item), Math.max(acc[1], item)], [255, 0])
+        .reduce((acc, item) => acc + item) / 2;
+    console.debug('prune', { type, threshold });
+    for (let i = 0; i < this.#current.length; ++i) {
+      const age = this.#current[i] >> 4;
+      if (age === 0) continue;
+      if ((type === SimPrune.Youngest && age > threshold) || (type === SimPrune.Oldest && age < threshold)) continue;
+      // clear age
+      this.#current[i] = this.#current[i] & 0xf;
+      const [x, y] = this.#indexToXy(i);
+      // remove from neighbour's neighbour counts
+      --this.#current[this.#xyToIndex(x + 0, y + 1)];
+      --this.#current[this.#xyToIndex(x + 1, y + 1)];
+      --this.#current[this.#xyToIndex(x + 1, y + 0)];
+      --this.#current[this.#xyToIndex(x + 1, y - 1)];
+      --this.#current[this.#xyToIndex(x + 0, y - 1)];
+      --this.#current[this.#xyToIndex(x - 1, y - 1)];
+      --this.#current[this.#xyToIndex(x - 1, y + 0)];
+      --this.#current[this.#xyToIndex(x - 1, y + 1)];
+    }
   }
   /** @returns performance duration in whole millis since we don't have high precision timers on the client */
   // TODO: add a local dirty array and use it to copy unchanged regions
@@ -142,23 +169,16 @@ export class Simulation {
   step(count = 1): number {
     const started = performance.now();
     for (let iteration = 0; iteration < count; ++iteration) {
-      if (this.#spawn.chance / 100 >= Math.random())
-        // outside of the loop so we don't interfere with neighbour count incrementing
-        // if this comment goes above `if (randomSpawn...`, biome helpfully DELETES THE IF CONDITION
-        this.spawn(...this.#indexToXy(Math.round(Math.random() * this.#current.length)));
+      // outside of the loop so we don't interfere with neighbour count incrementing
+      if (this.#spawn.chance / 100 >= Math.random()) this.spawn(...this.#indexToXy(Math.round(Math.random() * this.#current.length)));
       // simulation loop
       for (let i = 0; i < this.#current.length; ++i) {
         const age = this.#current[i] >> 4;
         const neighbours = this.#current[i] & 0xf;
-        // TODO: remove after debug
-        if (neighbours > 8) throw new Error('oh no');
         const nextAlive = (age === 0 && (this.#born & (1 << neighbours)) > 0) || (age > 0 && (this.#survive & (1 << neighbours)) > 0);
         if (nextAlive) {
-          const nextAge = nextAlive ? Math.min(age + 1, 255) : 0;
-          // write nextAge and preserve nextNeighbours
-          if (nextAge !== age) this.#next[i] = (nextAge << 4) | (this.#next[i] & 0xf);
-          // TODO: remove after debug
-          if (nextAge < age) throw new Error('oh no');
+          // write nextAge and preserve existing partial nextNeighbours
+          this.#next[i] = (Math.min(age + 1, 255) << 4) | (this.#next[i] & 0xf);
           // increment neighbour's neighbour counts
           const [x, y] = this.#indexToXy(i);
           ++this.#next[this.#xyToIndex(x + 0, y + 1)];
@@ -169,8 +189,7 @@ export class Simulation {
           ++this.#next[this.#xyToIndex(x - 1, y - 1)];
           ++this.#next[this.#xyToIndex(x - 1, y + 0)];
           ++this.#next[this.#xyToIndex(x - 1, y + 1)];
-          // TODO: this might be a bug
-        } else if (age === 255) console.info('died', { i, age, neighbours, nextAlive }, this.#indexToXy(i));
+        }
       }
       // swap arrays
       [this.#current, this.#next] = [this.#next, this.#current];

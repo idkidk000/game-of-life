@@ -1,18 +1,20 @@
-import { Camera, MenuIcon, Pause, Play, RedoDot, RouteOff, Sparkles, Sword, Trash } from 'lucide-react';
+import { Axe, Baby, Bug, Camera, Computer, Flame, MenuIcon, Moon, Pause, PersonStanding, Play, RedoDot, RouteOff, Sparkles, Sun, Trash } from 'lucide-react';
 import { useCallback } from 'react';
 import { Button } from '@/components/button';
 import { Checkbox } from '@/components/checkbox';
-import { Menu, MenuContent, MenuTrigger } from '@/components/menu';
+import { Menu, MenuClickToClose, MenuContent, MenuTrigger } from '@/components/menu';
 import { Range } from '@/components/range';
 import { Rules } from '@/components/rules';
 import { Command, type Controls as ControlsType, controlDefaults, useControls } from '@/hooks/controls';
+import { ThemePreference, useTheme } from '@/hooks/theme';
 import { objectIsEqual, omit } from '@/lib/utils';
 
 export function Nav() {
   const { setControls, controls, commandsRef } = useControls();
+  const { themePreference, setThemePreference } = useTheme();
 
   // states
-  const handleBloomChange = useCallback((bloom: boolean) => setControls((prev) => ({ ...prev, bloom })), [setControls]);
+  const handleBloomClick = useCallback(() => setControls((prev) => ({ ...prev, bloom: !prev.bloom })), [setControls]);
 
   const handleSpawnEnabledChange = useCallback((enabled: boolean) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, enabled } })), [setControls]);
 
@@ -46,6 +48,16 @@ export function Nav() {
 
   const handleResetClick = useCallback(() => setControls(() => ({ ...controlDefaults })), [setControls]);
 
+  const handleThemeClick = useCallback(
+    () =>
+      setThemePreference((prev) =>
+        prev === ThemePreference.Auto ? ThemePreference.Dark
+        : prev === ThemePreference.Dark ? ThemePreference.Light
+        : ThemePreference.Auto
+      ),
+    [setThemePreference]
+  );
+
   // commands (and also states)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
@@ -55,8 +67,14 @@ export function Nav() {
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  const handlePruneClick = useCallback(() => {
-    commandsRef.current.emit(Command.Prune);
+  const handlePruneYoungestClick = useCallback(() => {
+    commandsRef.current.emit(Command.PruneYoungest);
+    setControls((prev) => ({ ...prev, paused: false }));
+  }, []);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
+  const handlePruneOldestClick = useCallback(() => {
+    commandsRef.current.emit(Command.PruneOldest);
     setControls((prev) => ({ ...prev, paused: false }));
   }, []);
 
@@ -74,6 +92,9 @@ export function Nav() {
     commandsRef.current.emit(Command.Step);
     setControls((prev) => ({ ...prev, paused: true }));
   }, []);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
+  const handleDumpClick = useCallback(() => commandsRef.current.emit(Command.Dump), []);
 
   return (
     <nav className='flex flex-wrap gap-4 items-center justify-center w-full p-4'>
@@ -122,7 +143,6 @@ export function Nav() {
               />
             </section>
             <Rules onValueChange={handleRulesChange} values={controls.rules} />
-            <Checkbox label='Bloom' title='Bloom filter' onValueChange={handleBloomChange} value={controls.bloom} />
           </div>
         </MenuContent>
       </Menu>
@@ -140,17 +160,49 @@ export function Nav() {
       <Button onClick={handleSeedClick} title='Seed'>
         <Sparkles />
       </Button>
-      <Button onClick={handlePruneClick} title='Prune'>
-        <Sword />
+      <Menu clickToClose={MenuClickToClose.Both}>
+        <MenuTrigger title='Prune'>
+          <Axe />
+        </MenuTrigger>
+        <MenuContent width='auto'>
+          <div className='flex flex-row gap-4 p-4'>
+            <Button title='Youngest' onClick={handlePruneYoungestClick}>
+              <Baby />
+            </Button>
+            <Button title='Oldest' onClick={handlePruneOldestClick}>
+              <PersonStanding />
+            </Button>
+          </div>
+        </MenuContent>
+      </Menu>
+      <Button onClick={handleDumpClick} title='Dump to console'>
+        <Bug />
       </Button>
       <Button
         type='reset'
         onClick={handleResetClick}
-        // disabled={JSON.stringify(omit(controlDefaults, ['paused'])) === JSON.stringify(omit(controls, ['paused']))}
         disabled={objectIsEqual(omit(controlDefaults, ['paused']), omit(controls, ['paused']))}
         title='Reset controls'
       >
         <RouteOff />
+      </Button>
+      <Button onClick={handleBloomClick} title='Bloom filter' className={controls.bloom ? 'bg-accent' : ''}>
+        <Flame />
+      </Button>
+      <Button
+        onClick={handleThemeClick}
+        title={
+          themePreference === ThemePreference.Dark ? 'Dark'
+          : themePreference === ThemePreference.Light ?
+            'Light'
+          : 'System'
+        }
+      >
+        {themePreference === ThemePreference.Dark ?
+          <Moon />
+        : themePreference === ThemePreference.Light ?
+          <Sun />
+        : <Computer />}
       </Button>
       <Button title='Save image' onClick={handleSaveClick}>
         <Camera />
