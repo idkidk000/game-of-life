@@ -63,6 +63,9 @@
   canvas {
     @apply size-full border-3 rounded-lg border-accent bg-background;
   }
+  :fullscreen canvas {
+    @apply border-0;
+  }
   menu {
     @apply border-3 rounded-lg border-accent bg-background;
   }

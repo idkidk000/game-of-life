@@ -1,5 +1,24 @@
-import { Axe, Baby, Bug, Camera, Computer, Flame, MenuIcon, Moon, Pause, PersonStanding, Play, RedoDot, RouteOff, Sparkles, Sun, Trash } from 'lucide-react';
-import { useCallback } from 'react';
+import {
+  Axe,
+  Baby,
+  Bug,
+  Camera,
+  Computer,
+  Flame,
+  Fullscreen,
+  MenuIcon,
+  Moon,
+  Pause,
+  PersonStanding,
+  Play,
+  RedoDot,
+  RouteOff,
+  Shrink,
+  Sparkles,
+  Sun,
+  Trash,
+} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/button';
 import { Checkbox } from '@/components/checkbox';
 import { Menu, MenuClickToClose, MenuContent, MenuTrigger } from '@/components/menu';
@@ -12,6 +31,7 @@ import { objectIsEqual, omit } from '@/lib/utils';
 export function Nav() {
   const { setControls, controls, commandsRef } = useControls();
   const { themePreference, setThemePreference } = useTheme();
+  const [fullScreen, setFullScreen] = useState(!!document.fullscreenElement);
 
   // states
   const handleBloomClick = useCallback(() => setControls((prev) => ({ ...prev, bloom: !prev.bloom })), [setControls]);
@@ -95,6 +115,71 @@ export function Nav() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleDumpClick = useCallback(() => commandsRef.current.emit(Command.Dump), []);
+
+  const handleFullScreenClick = useCallback(() => {
+    // these both return promises but fullscreen can be exited outside of pressing the button so state is updated in a document event listener
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.body.requestFullscreen().catch((err) => console.error('error requesting full screen', err));
+  }, []);
+
+  useEffect(() => {
+    const shortcuts = new Map<string, () => unknown>([
+      [' ', handlePausedClick],
+      ['-', () => setControls((prev) => ({ ...prev, speed: Math.max(prev.speed - 1, 1) }))],
+      ['*', handleSeedClick],
+      ['+', () => setControls((prev) => ({ ...prev, speed: Math.min(prev.speed + 1, 10) }))],
+      ['0', () => setControls((prev) => ({ ...prev, scale: 1 }))],
+      ['1', () => setControls((prev) => ({ ...prev, scale: 0.1 }))],
+      ['2', () => setControls((prev) => ({ ...prev, scale: 0.2 }))],
+      ['3', () => setControls((prev) => ({ ...prev, scale: 0.3 }))],
+      ['4', () => setControls((prev) => ({ ...prev, scale: 0.4 }))],
+      ['5', () => setControls((prev) => ({ ...prev, scale: 0.5 }))],
+      ['6', () => setControls((prev) => ({ ...prev, scale: 0.6 }))],
+      ['7', () => setControls((prev) => ({ ...prev, scale: 0.7 }))],
+      ['8', () => setControls((prev) => ({ ...prev, scale: 0.8 }))],
+      ['9', () => setControls((prev) => ({ ...prev, scale: 0.9 }))],
+      ['b', handleBloomClick],
+      ['d', handleDumpClick],
+      ['f', handleFullScreenClick],
+      ['o', handlePruneOldestClick],
+      ['r', () => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, enabled: !prev.spawn.enabled } }))],
+      ['s', handleStepClick],
+      ['x', handleClearClick],
+      ['y', handlePruneYoungestClick],
+    ]);
+
+    const controller = new AbortController();
+
+    document.addEventListener(
+      'keyup',
+      (event) => {
+        const shortcut = shortcuts.get(event.key.toLocaleLowerCase());
+        if (!shortcut) return;
+        event.stopPropagation();
+        event.preventDefault();
+        console.debug('shortcut', event.key, shortcut);
+        shortcut();
+      },
+      { signal: controller.signal }
+    );
+
+    document.addEventListener('fullscreenchange', () => {
+      setFullScreen(!!document.fullscreenElement);
+    });
+
+    return () => controller.abort();
+  }, [
+    handleBloomClick,
+    handleClearClick,
+    handleDumpClick,
+    handlePausedClick,
+    handleSeedClick,
+    handleStepClick,
+    setControls,
+    handleFullScreenClick,
+    handlePruneOldestClick,
+    handlePruneYoungestClick,
+  ]);
 
   return (
     <nav className='flex flex-wrap gap-4 items-center justify-center w-full p-4'>
@@ -203,6 +288,11 @@ export function Nav() {
         : themePreference === ThemePreference.Light ?
           <Sun />
         : <Computer />}
+      </Button>
+      <Button title={fullScreen ? 'Minimise' : 'Full screen'} onClick={handleFullScreenClick} className={fullScreen ? 'bg-accent' : undefined}>
+        {fullScreen ?
+          <Shrink />
+        : <Fullscreen />}
       </Button>
       <Button title='Save image' onClick={handleSaveClick}>
         <Camera />
