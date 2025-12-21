@@ -1,21 +1,20 @@
-import { useEffect } from 'react';
-import { useCanvas } from '@/hooks/canvas';
+import { useEffect, useRef } from 'react';
+import { Canvas } from '@/components/canvas';
 import { useControls } from '@/hooks/controls';
 import { useSimulation } from '@/hooks/simulation';
 import { useTheme } from '@/hooks/theme';
 import { SlidingWindow } from '@/lib/sliding-window';
 
-export function Renderer2d() {
+/** this is slower than rendering geometry at native resolution since we have to loop over all screen pixels of the cell */
+export function Renderer2DPixel() {
   const { controlsRef } = useControls();
-  const { canvasRef } = useCanvas();
   const { darkRef } = useTheme();
   const { simulationRef, stepTimesRef } = useSimulation();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // animation loop
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref objects
   useEffect(() => {
     if (!canvasRef.current) return;
-
     const context = canvasRef.current.getContext('2d', {
       alpha: false,
       desynchronized: true,
@@ -23,49 +22,36 @@ export function Renderer2d() {
     if (!context) return;
     const abortController = new AbortController();
     const frameTimes = new SlidingWindow<number>(100);
+    let imageData = context.createImageData(canvasRef.current.width, canvasRef.current.height);
 
     const render = (time: number) => {
       if (!canvasRef.current) return;
       frameTimes.push(time);
-
-      const simWidth = Math.round(canvasRef.current.width * controlsRef.current.scale);
-      const simHeight = Math.round(canvasRef.current.height * controlsRef.current.scale);
-      if (simulationRef.current.width !== simWidth || simulationRef.current.height !== simHeight) simulationRef.current.updateSize(simWidth, simHeight);
-
       if (!controlsRef.current.paused) stepTimesRef.current.push(simulationRef.current.step(controlsRef.current.speed));
 
-      const lightness = `${darkRef.current ? '70' : '30'}%`;
+      if (imageData.width !== canvasRef.current.width || imageData.height !== canvasRef.current.height)
+        imageData = context.createImageData(canvasRef.current.width, canvasRef.current.height);
+      else imageData.data.fill(0);
 
-      // clear the whole bg
-      context.fillStyle = `hsl(0 0% ${darkRef.current ? '0' : '100'}%)`;
-      context.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-
-      // janky fake bloom until i learn how to use a webgl2 canvas
-      if (controlsRef.current.bloom) {
-        const first = Math.ceil((1 / controlsRef.current.scale) * 3);
-        for (const [x, y, age, neighbours] of simulationRef.current.values()) {
-          const canvasX = Math.round((x - 1) / controlsRef.current.scale);
-          const canvasY = Math.round((y - 1) / controlsRef.current.scale);
-          context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness} / 10%)`;
-          context.fillRect(canvasX, canvasY, first, first);
-        }
-        const second = Math.ceil((1 / controlsRef.current.scale) * 2);
-        for (const [x, y, age, neighbours] of simulationRef.current.values()) {
-          const canvasX = Math.round((x - 0.5) / controlsRef.current.scale);
-          const canvasY = Math.round((y - 0.5) / controlsRef.current.scale);
-          context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness} / 20%)`;
-          context.fillRect(canvasX, canvasY, second, second);
-        }
-      }
-
-      // render sim
       const pixel = Math.ceil(1 / controlsRef.current.scale);
-      for (const [x, y, age, neighbours] of simulationRef.current.values()) {
-        const canvasX = Math.round(x / controlsRef.current.scale);
-        const canvasY = Math.round(y / controlsRef.current.scale);
-        context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness})`;
-        context.fillRect(canvasX, canvasY, pixel, pixel);
+      for (const [x, y, age, _neighbours] of simulationRef.current.values()) {
+        const canvasXStart = Math.round(x / controlsRef.current.scale);
+        const canvasYStart = Math.round(y / controlsRef.current.scale);
+        const canvasXEnd = canvasXStart + pixel;
+        const canvasYEnd = canvasYStart + pixel;
+        const value = age > 0 ? 255 : 0;
+        for (let cx = canvasXStart; cx <= canvasXEnd; ++cx) {
+          for (let cy = canvasYStart; cy <= canvasYEnd; ++cy) {
+            const i = (cy * canvasRef.current.width + cx) * 4;
+            imageData.data[i] = value;
+            imageData.data[i + 1] = value;
+            imageData.data[i + 2] = value;
+            imageData.data[i + 3] = 255;
+          }
+        }
       }
+
+      context.putImageData(imageData, 0, 0);
 
       // generate labels
       const { alive, steps } = simulationRef.current.stats();
@@ -87,6 +73,7 @@ export function Renderer2d() {
       });
 
       // render labels
+      const lightness = `${darkRef.current ? '70' : '30'}%`;
       // the magic numbers are 50px line height (font size is 30px) so 10px above and below
       // fillText origin is bottom left
       const maxWidth = labels.reduce((acc, item) => Math.max(acc, item.width), 0);
@@ -109,11 +96,8 @@ export function Renderer2d() {
 
     requestAnimationFrame(render);
 
-    return () => {
-      abortController.abort();
-      context.reset();
-    };
+    return () => abortController.abort();
   }, []);
 
-  return null;
+  return <Canvas canvasRef={canvasRef} />;
 }

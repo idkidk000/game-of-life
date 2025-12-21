@@ -1,21 +1,13 @@
-import { createContext, type MouseEvent, type ReactNode, type RefObject, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { type MouseEvent, type RefObject, useCallback, useEffect, useLayoutEffect } from 'react';
 import { Command, useControls } from '@/hooks/controls';
 import { useSimulation } from '@/hooks/simulation';
 
-interface Context {
-  canvasRef: RefObject<HTMLCanvasElement>;
-}
-
-const Context = createContext<Context | null>(null);
-
-export function CanvasProvider({ children }: { children: ReactNode }) {
+export function Canvas({ canvasRef }: { canvasRef: RefObject<HTMLCanvasElement | null> }) {
   const { controlsRef, commandsRef, setControls } = useControls();
   const { simulationRef } = useSimulation();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const contextValue: Context = useMemo(() => ({ canvasRef: canvasRef as RefObject<HTMLCanvasElement> }), []);
 
   // resize the canvas to fit the element
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   useLayoutEffect(() => {
     if (!canvasRef.current) return;
     const element = canvasRef.current;
@@ -25,6 +17,9 @@ export function CanvasProvider({ children }: { children: ReactNode }) {
       const { width, height } = contentRect;
       element.width = Math.round(width);
       element.height = Math.round(height);
+      const simWidth = Math.round(element.width * controlsRef.current.scale);
+      const simHeight = Math.round(element.height * controlsRef.current.scale);
+      if (simulationRef.current.width !== simWidth || simulationRef.current.height !== simHeight) simulationRef.current.updateSize(simWidth, simHeight);
     });
 
     observer.observe(element);
@@ -95,16 +90,5 @@ export function CanvasProvider({ children }: { children: ReactNode }) {
     [clientXyToSimXy, setControls]
   );
 
-  return (
-    <Context value={contextValue}>
-      <canvas ref={canvasRef} onMouseMove={handleMouseMove} onClick={handleClick} onContextMenu={handleRightClick} />
-      {children}
-    </Context>
-  );
-}
-
-export function useCanvas() {
-  const context = useContext(Context);
-  if (context === null) throw new Error('useCanvas must be used underneath a CanvasProvider');
-  return context;
+  return <canvas ref={canvasRef} onMouseMove={handleMouseMove} onClick={handleClick} onContextMenu={handleRightClick} />;
 }

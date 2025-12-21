@@ -1,7 +1,7 @@
 import { Nav } from '@/components/nav';
-import { Renderer2d } from '@/components/renderer/2d';
-import { RendererWebGl2 } from '@/components/renderer/webgl2';
-import { CanvasProvider } from '@/hooks/canvas';
+import { Renderer2dGeometry } from '@/components/renderer/2d-geometry';
+import { Renderer2DPixel } from '@/components/renderer/2d-pixel';
+import { RendererTwoJs } from '@/components/renderer/webgl2-twojs';
 import { Renderer, useControls } from '@/hooks/controls';
 
 export default function Page() {
@@ -9,13 +9,13 @@ export default function Page() {
   return (
     <div className='flex flex-col size-full items-center justify-center'>
       <Nav />
-      <CanvasProvider>
-        {controls.renderer === Renderer.Canvas2D ?
-          <Renderer2d />
-        : controls.renderer === Renderer.CanvasWebGl2 ?
-          <RendererWebGl2 />
-        : null}
-      </CanvasProvider>
+      {controls.renderer === Renderer.Canvas2DGeometry ?
+        <Renderer2dGeometry />
+      : controls.renderer === Renderer.TwoJs ?
+        <RendererTwoJs />
+      : controls.renderer === Renderer.Canvas2DPixel ?
+        <Renderer2DPixel />
+      : null}
     </div>
   );
 }

@@ -1,29 +1,34 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Two from 'two.js';
-import { useCanvas } from '@/hooks/canvas';
+import { Canvas } from '@/components/canvas';
 import { useControls } from '@/hooks/controls';
 import { useSimulation } from '@/hooks/simulation';
 import { useTheme } from '@/hooks/theme';
 
-export function RendererWebGl2() {
+/** very slow. two.js is best at handling retained objects which are created on init. i'm rebuilding the entire scene every frame. it can't do instanced rendering so this won't work */
+export function RendererTwoJs() {
   const { controlsRef } = useControls();
-  const { canvasRef } = useCanvas();
-  const { simulationRef, stepTimesRef } = useSimulation();
   const { darkRef } = useTheme();
+  const { simulationRef, stepTimesRef } = useSimulation();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // animation loop
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref objects
   useEffect(() => {
     if (!canvasRef.current) return;
-    const two = new Two({ type: 'WebGLRenderer', domElement: canvasRef.current, autostart: true });
+    const two = new Two({
+      type: 'WebGLRenderer',
+      domElement: canvasRef.current,
+      autostart: true,
+      // width: canvasRef.current.width,
+      // height: canvasRef.current.height,
+    });
 
     two.bind('update', () => {
       if (!canvasRef.current) return;
-      if (!two) return;
 
-      const simWidth = Math.round(canvasRef.current.width * controlsRef.current.scale);
-      const simHeight = Math.round(canvasRef.current.height * controlsRef.current.scale);
-      if (simulationRef.current.width !== simWidth || simulationRef.current.height !== simHeight) simulationRef.current.updateSize(simWidth, simHeight);
+      // twojs i am begging you to stop
+      // canvasRef.current.style.width = 'unset';
+      // canvasRef.current.style.height = 'unset';
 
       if (!controlsRef.current.paused) stepTimesRef.current.push(simulationRef.current.step(controlsRef.current.speed));
 
@@ -42,8 +47,9 @@ export function RendererWebGl2() {
         rect.fill = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness})`;
       }
     });
-    return () => two.release();
+    // this breaks twojs
+    // return () => two.release();
   }, []);
 
-  return null;
+  return <Canvas canvasRef={canvasRef} />;
 }

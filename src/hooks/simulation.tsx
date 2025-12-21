@@ -34,14 +34,15 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   useEffect(() => {
     const destructors = [
-      commandsRef.current.subscribe(Command.Clear, simulationRef.current.clear),
+      commandsRef.current.subscribe(Command.Clear, () => simulationRef.current.clear()),
       commandsRef.current.subscribe(Command.Dump, () => {
         if (!simulationRef.current) return;
         console.debug(...simulationRef.current.values().map(([x, y, age, neighbours]) => ({ x, y, age, neighbours })));
+        console.debug(simulationRef.current.inspect());
       }),
       commandsRef.current.subscribe(Command.PruneOldest, () => simulationRef.current.prune(SimPrune.Oldest)),
       commandsRef.current.subscribe(Command.PruneYoungest, () => simulationRef.current.prune(SimPrune.Youngest)),
-      commandsRef.current.subscribe(Command.Seed, simulationRef.current.seed),
+      commandsRef.current.subscribe(Command.Seed, () => simulationRef.current.seed()),
       commandsRef.current.subscribe(Command.Step, () => {
         stepTimesRef.current.push(simulationRef.current.step());
       }),

@@ -81,7 +81,14 @@ export function Nav() {
   );
 
   const handleRendererClick = useCallback(
-    () => setControls((prev) => ({ ...prev, renderer: prev.renderer === Renderer.Canvas2D ? Renderer.CanvasWebGl2 : Renderer.Canvas2D })),
+    () =>
+      setControls((prev) => ({
+        ...prev,
+        renderer:
+          prev.renderer === Renderer.Canvas2DGeometry ? Renderer.Canvas2DPixel
+          : prev.renderer === Renderer.Canvas2DPixel ? Renderer.TwoJs
+          : Renderer.Canvas2DGeometry,
+      })),
     [setControls]
   );
 
@@ -303,16 +310,16 @@ export function Nav() {
       </Button>
       <Button
         title={
-          controls.renderer === Renderer.Canvas2D ? '2D'
-          : controls.renderer === Renderer.CanvasWebGl2 ?
-            'WebGl2'
+          controls.renderer === Renderer.Canvas2DGeometry ? 'Canvas 2D'
+          : controls.renderer === Renderer.TwoJs ?
+            'Two.js WebGl2'
           : 'Unknown'
         }
         onClick={handleRendererClick}
       >
-        {controls.renderer === Renderer.Canvas2D ?
+        {controls.renderer === Renderer.Canvas2DGeometry ?
           <Square />
-        : controls.renderer === Renderer.CanvasWebGl2 ?
+        : controls.renderer === Renderer.TwoJs ?
           <Box />
         : null}
       </Button>

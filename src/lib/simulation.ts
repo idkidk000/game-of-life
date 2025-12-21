@@ -210,4 +210,13 @@ export class Simulation {
     }
     return { alive, steps: this.#steps };
   }
+  /** apparently there is no browser equivalent of `inspect.custom` from `node:util` */
+  inspect() {
+    return {
+      width: this.#width,
+      height: this.#height,
+      steps: this.#steps,
+      alive: this.#current.filter((item) => item & 0xff0).length,
+    };
+  }
 }
