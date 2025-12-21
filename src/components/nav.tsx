@@ -1,6 +1,7 @@
 import {
   Axe,
   Baby,
+  Box,
   Bug,
   Camera,
   Computer,
@@ -15,6 +16,7 @@ import {
   RouteOff,
   Shrink,
   Sparkles,
+  Square,
   Sun,
   Trash,
 } from 'lucide-react';
@@ -24,7 +26,7 @@ import { Checkbox } from '@/components/checkbox';
 import { Menu, MenuClickToClose, MenuContent, MenuTrigger } from '@/components/menu';
 import { Range } from '@/components/range';
 import { Rules } from '@/components/rules';
-import { Command, type Controls as ControlsType, controlDefaults, useControls } from '@/hooks/controls';
+import { Command, type Controls as ControlsType, controlDefaults, Renderer, useControls } from '@/hooks/controls';
 import { ThemePreference, useTheme } from '@/hooks/theme';
 import { objectIsEqual, omit } from '@/lib/utils';
 
@@ -76,6 +78,11 @@ export function Nav() {
         : ThemePreference.Auto
       ),
     [setThemePreference]
+  );
+
+  const handleRendererClick = useCallback(
+    () => setControls((prev) => ({ ...prev, renderer: prev.renderer === Renderer.Canvas2D ? Renderer.CanvasWebGl2 : Renderer.Canvas2D })),
+    [setControls]
   );
 
   // commands (and also states)
@@ -293,6 +300,21 @@ export function Nav() {
         {fullScreen ?
           <Shrink />
         : <Fullscreen />}
+      </Button>
+      <Button
+        title={
+          controls.renderer === Renderer.Canvas2D ? '2D'
+          : controls.renderer === Renderer.CanvasWebGl2 ?
+            'WebGl2'
+          : 'Unknown'
+        }
+        onClick={handleRendererClick}
+      >
+        {controls.renderer === Renderer.Canvas2D ?
+          <Square />
+        : controls.renderer === Renderer.CanvasWebGl2 ?
+          <Box />
+        : null}
       </Button>
       <Button title='Save image' onClick={handleSaveClick}>
         <Camera />

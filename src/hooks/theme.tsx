@@ -48,7 +48,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [dark, themePreference]
   );
 
-  return <Context.Provider value={contextValue}>{children}</Context.Provider>;
+  return <Context value={contextValue}>{children}</Context>;
 }
 
 export function useTheme() {

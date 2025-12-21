@@ -2,6 +2,10 @@ import { createContext, type Dispatch, type ReactNode, type RefObject, type SetS
 import { EventEmitter } from '@/lib/event-emitter';
 import { defaultSimRules, defaultSimSpawn, type SimRules, type SimSpawn } from '@/lib/simulation';
 
+export enum Renderer {
+  Canvas2D,
+  CanvasWebGl2,
+}
 export interface Controls {
   bloom: boolean;
   paused: boolean;
@@ -9,6 +13,7 @@ export interface Controls {
   scale: number;
   spawn: SimSpawn & { enabled: boolean };
   speed: number;
+  renderer: Renderer;
 }
 
 export const controlDefaults: Controls = {
@@ -18,6 +23,7 @@ export const controlDefaults: Controls = {
   scale: 0.3,
   spawn: { ...defaultSimSpawn, enabled: defaultSimSpawn.chance > 0 },
   speed: 1,
+  renderer: Renderer.Canvas2D,
 };
 
 export enum Command {
@@ -50,7 +56,7 @@ export function ControlsProvider({ children }: { readonly children: ReactNode })
 
   const contextValue: Context = useMemo(() => ({ controls, setControls, controlsRef, commandsRef }), [controls]);
 
-  return <Context.Provider value={contextValue}>{children}</Context.Provider>;
+  return <Context value={contextValue}>{children}</Context>;
 }
 
 export function useControls() {

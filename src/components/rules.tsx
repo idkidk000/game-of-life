@@ -1,7 +1,13 @@
+import { Dices } from 'lucide-react';
 import { type ChangeEvent, useCallback, useId } from 'react';
+import { Button } from '@/components/button';
 import type { SimRule, SimRules } from '@/lib/simulation';
 
 const cells = Array.from({ length: 9 }, (_, i) => i);
+
+function randomise() {
+  return cells.toSorted(() => Math.random() - 0.5).slice(0, 1 + Math.random() * 2) as SimRule;
+}
 
 function Cell({ number, value, onValueChange }: { number: number; value: SimRule; onValueChange: (value: SimRule) => unknown }) {
   const id = useId();
@@ -39,11 +45,21 @@ export function Rules({ values, onValueChange }: { values: SimRules; onValueChan
 
   const handleSurviveChange = useCallback((survive: SimRule) => onValueChange({ ...values, survive }), [onValueChange, values]);
 
+  const handleRandomiseClick = useCallback(() => {
+    onValueChange({
+      born: randomise(),
+      survive: randomise(),
+    });
+  }, [onValueChange]);
+
   return (
     <div className='control-group'>
       <Rule label='Born' onValueChange={handleBornChange} title='Cell is born when this many live neighbours' value={values.born} />
       <Rule label='Survive' onValueChange={handleSurviveChange} title='Cell survives when this many live neighbours' value={values.survive} />
       <pre>{`B${values.born.toSorted().join('')}/S${values.survive.toSorted().join('')}`}</pre>
+      <Button title='Randomise' onClick={handleRandomiseClick}>
+        <Dices />
+      </Button>
     </div>
   );
 }

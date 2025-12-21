@@ -1,0 +1,119 @@
+import { useEffect } from 'react';
+import { useCanvas } from '@/hooks/canvas';
+import { useControls } from '@/hooks/controls';
+import { useSimulation } from '@/hooks/simulation';
+import { useTheme } from '@/hooks/theme';
+import { SlidingWindow } from '@/lib/sliding-window';
+
+export function Renderer2d() {
+  const { controlsRef } = useControls();
+  const { canvasRef } = useCanvas();
+  const { darkRef } = useTheme();
+  const { simulationRef, stepTimesRef } = useSimulation();
+
+  // animation loop
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref objects
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    const context = canvasRef.current.getContext('2d', {
+      alpha: false,
+      desynchronized: true,
+    });
+    if (!context) return;
+    const abortController = new AbortController();
+    const frameTimes = new SlidingWindow<number>(100);
+
+    const render = (time: number) => {
+      if (!canvasRef.current) return;
+      frameTimes.push(time);
+
+      const simWidth = Math.round(canvasRef.current.width * controlsRef.current.scale);
+      const simHeight = Math.round(canvasRef.current.height * controlsRef.current.scale);
+      if (simulationRef.current.width !== simWidth || simulationRef.current.height !== simHeight) simulationRef.current.updateSize(simWidth, simHeight);
+
+      if (!controlsRef.current.paused) stepTimesRef.current.push(simulationRef.current.step(controlsRef.current.speed));
+
+      const lightness = `${darkRef.current ? '70' : '30'}%`;
+
+      // clear the whole bg
+      context.fillStyle = `hsl(0 0% ${darkRef.current ? '0' : '100'}%)`;
+      context.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+      // janky fake bloom until i learn how to use a webgl2 canvas
+      if (controlsRef.current.bloom) {
+        const first = Math.ceil((1 / controlsRef.current.scale) * 3);
+        for (const [x, y, age, neighbours] of simulationRef.current.values()) {
+          const canvasX = Math.round((x - 1) / controlsRef.current.scale);
+          const canvasY = Math.round((y - 1) / controlsRef.current.scale);
+          context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness} / 10%)`;
+          context.fillRect(canvasX, canvasY, first, first);
+        }
+        const second = Math.ceil((1 / controlsRef.current.scale) * 2);
+        for (const [x, y, age, neighbours] of simulationRef.current.values()) {
+          const canvasX = Math.round((x - 0.5) / controlsRef.current.scale);
+          const canvasY = Math.round((y - 0.5) / controlsRef.current.scale);
+          context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness} / 20%)`;
+          context.fillRect(canvasX, canvasY, second, second);
+        }
+      }
+
+      // render sim
+      const pixel = Math.ceil(1 / controlsRef.current.scale);
+      for (const [x, y, age, neighbours] of simulationRef.current.values()) {
+        const canvasX = Math.round(x / controlsRef.current.scale);
+        const canvasY = Math.round(y / controlsRef.current.scale);
+        context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness})`;
+        context.fillRect(canvasX, canvasY, pixel, pixel);
+      }
+
+      // generate labels
+      const { alive, steps } = simulationRef.current.stats();
+      // this is faking accuracy since performance.now() is an integer in the frontend
+      const stepTime = stepTimesRef.current.items().reduce((acc, item) => acc + item, 0) / stepTimesRef.current.size;
+      const frameRate = (1000 / ((frameTimes.at(-1) ?? 0) - (frameTimes.at(0) ?? 0))) * (frameTimes.size - 1);
+
+      // get label widths
+      context.font = '30px monospace';
+      context.fillStyle = `hsl(0 0% ${darkRef.current ? '0' : '100'}% / 70%)`;
+      const labels = [
+        { text: `Step ${steps.toLocaleString()}`, hue: 50 },
+        { text: `${stepTime.toFixed(1)} ms`, hue: 150 },
+        { text: `${frameRate.toFixed(1)} fps`, hue: 200 },
+        { text: `${alive.toLocaleString()} alive`, hue: 250 },
+      ].map((item) => {
+        const { width } = context.measureText(item.text);
+        return { ...item, width };
+      });
+
+      // render labels
+      // the magic numbers are 50px line height (font size is 30px) so 10px above and below
+      // fillText origin is bottom left
+      const maxWidth = labels.reduce((acc, item) => Math.max(acc, item.width), 0);
+      const [columns, rows] =
+        maxWidth < canvasRef.current.width / 4 ? [4, 1]
+        : maxWidth < canvasRef.current.width / 2 ? [2, 2]
+        : [1, 4];
+      context.fillRect(0, canvasRef.current.height - rows * 50, canvasRef.current.width, rows * 50);
+      for (const [l, label] of labels.entries()) {
+        context.fillStyle = `hsl(${label.hue} 80% ${lightness})`;
+        context.fillText(
+          label.text,
+          (canvasRef.current.width / columns) * (l % columns) + (canvasRef.current.width / columns - label.width) / 2,
+          canvasRef.current.height - (rows - 1) * 50 + Math.floor(l / columns) * 50 - 10
+        );
+      }
+
+      if (!abortController.signal.aborted) requestAnimationFrame(render);
+    };
+
+    requestAnimationFrame(render);
+
+    return () => {
+      abortController.abort();
+      context.reset();
+    };
+  }, []);
+
+  return null;
+}
