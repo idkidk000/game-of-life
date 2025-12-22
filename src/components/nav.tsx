@@ -1,7 +1,6 @@
 import {
   Axe,
   Baby,
-  Box,
   Bug,
   Camera,
   Computer,
@@ -16,7 +15,6 @@ import {
   RouteOff,
   Shrink,
   Sparkles,
-  Square,
   Sun,
   Trash,
 } from 'lucide-react';
@@ -26,13 +24,14 @@ import { Checkbox } from '@/components/checkbox';
 import { Menu, MenuClickToClose, MenuContent, MenuTrigger } from '@/components/menu';
 import { Range } from '@/components/range';
 import { Rules } from '@/components/rules';
+import { Select } from '@/components/select';
 import { Command, type Controls as ControlsType, controlDefaults, Renderer, useControls } from '@/hooks/controls';
-import { ThemePreference, useTheme } from '@/hooks/theme';
+import { type ThemeColour, ThemePreference, themeColours, useTheme } from '@/hooks/theme';
 import { objectIsEqual, omit } from '@/lib/utils';
 
 export function Nav() {
   const { setControls, controls, commandsRef } = useControls();
-  const { themePreference, setThemePreference } = useTheme();
+  const { themePreference, setThemePreference, themeColour, setThemeColour } = useTheme();
   const [fullScreen, setFullScreen] = useState(!!document.fullscreenElement);
 
   // states
@@ -80,17 +79,9 @@ export function Nav() {
     [setThemePreference]
   );
 
-  const handleRendererClick = useCallback(
-    () =>
-      setControls((prev) => ({
-        ...prev,
-        renderer:
-          prev.renderer === Renderer.Canvas2DGeometry ? Renderer.Canvas2DPixel
-          : prev.renderer === Renderer.Canvas2DPixel ? Renderer.TwoJs
-          : Renderer.Canvas2DGeometry,
-      })),
-    [setControls]
-  );
+  const handleRendererChange = useCallback((renderer: number) => setControls((prev) => ({ ...prev, renderer })), [setControls]);
+
+  const handleThemeColourChange = useCallback((colour: ThemeColour) => setThemeColour(colour), [setThemeColour]);
 
   // commands (and also states)
 
@@ -242,6 +233,48 @@ export function Nav() {
               />
             </section>
             <Rules onValueChange={handleRulesChange} values={controls.rules} />
+            <Button onClick={handleDumpClick} title='Dump to console'>
+              <Bug />
+            </Button>
+            <Button onClick={handleBloomClick} title='Bloom filter' className={controls.bloom ? 'bg-accent' : ''}>
+              <Flame />
+            </Button>
+            <Button
+              onClick={handleThemeClick}
+              title={
+                themePreference === ThemePreference.Dark ? 'Dark'
+                : themePreference === ThemePreference.Light ?
+                  'Light'
+                : 'System'
+              }
+            >
+              {themePreference === ThemePreference.Dark ?
+                <Moon />
+              : themePreference === ThemePreference.Light ?
+                <Sun />
+              : <Computer />}
+            </Button>
+            <Select
+              label='Colour'
+              onValueChange={handleThemeColourChange}
+              options={themeColours.map((colour) => ({
+                key: colour,
+                label: `${colour[0].toLocaleUpperCase()}${colour.slice(1)}`,
+              }))}
+              title='Select theme colour'
+              type='string'
+              value={themeColour}
+            />
+            <Select
+              label='Renderer'
+              onValueChange={handleRendererChange}
+              options={Object.entries(Renderer)
+                .map(([key, label]) => ({ key: Number(key), label: String(label) }))
+                .filter(({ key }) => !Number.isNaN(key))}
+              title='Type of canvas renderer to use'
+              type='number'
+              value={controls.renderer}
+            />
           </div>
         </MenuContent>
       </Menu>
@@ -274,9 +307,6 @@ export function Nav() {
           </div>
         </MenuContent>
       </Menu>
-      <Button onClick={handleDumpClick} title='Dump to console'>
-        <Bug />
-      </Button>
       <Button
         type='reset'
         onClick={handleResetClick}
@@ -285,43 +315,10 @@ export function Nav() {
       >
         <RouteOff />
       </Button>
-      <Button onClick={handleBloomClick} title='Bloom filter' className={controls.bloom ? 'bg-accent' : ''}>
-        <Flame />
-      </Button>
-      <Button
-        onClick={handleThemeClick}
-        title={
-          themePreference === ThemePreference.Dark ? 'Dark'
-          : themePreference === ThemePreference.Light ?
-            'Light'
-          : 'System'
-        }
-      >
-        {themePreference === ThemePreference.Dark ?
-          <Moon />
-        : themePreference === ThemePreference.Light ?
-          <Sun />
-        : <Computer />}
-      </Button>
       <Button title={fullScreen ? 'Minimise' : 'Full screen'} onClick={handleFullScreenClick} className={fullScreen ? 'bg-accent' : undefined}>
         {fullScreen ?
           <Shrink />
         : <Fullscreen />}
-      </Button>
-      <Button
-        title={
-          controls.renderer === Renderer.Canvas2DGeometry ? 'Canvas 2D'
-          : controls.renderer === Renderer.TwoJs ?
-            'Two.js WebGl2'
-          : 'Unknown'
-        }
-        onClick={handleRendererClick}
-      >
-        {controls.renderer === Renderer.Canvas2DGeometry ?
-          <Square />
-        : controls.renderer === Renderer.TwoJs ?
-          <Box />
-        : null}
       </Button>
       <Button title='Save image' onClick={handleSaveClick}>
         <Camera />

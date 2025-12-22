@@ -7,7 +7,7 @@ import { SlidingWindow } from '@/lib/sliding-window';
 
 export function Renderer2dGeometry() {
   const { controlsRef } = useControls();
-  const { darkRef } = useTheme();
+  const { themeDarkRef } = useTheme();
   const { simulationRef, stepTimesRef } = useSimulation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -28,10 +28,10 @@ export function Renderer2dGeometry() {
 
       if (!controlsRef.current.paused) stepTimesRef.current.push(simulationRef.current.step(controlsRef.current.speed));
 
-      const lightness = `${darkRef.current ? '70' : '30'}%`;
+      const lightness = `${themeDarkRef.current ? '70' : '30'}%`;
 
       // clear the whole bg
-      context.fillStyle = `hsl(0 0% ${darkRef.current ? '0' : '100'}%)`;
+      context.fillStyle = `hsl(0 0% ${themeDarkRef.current ? '0' : '100'}%)`;
       context.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
       // janky fake bloom until i learn how to use a webgl2 canvas
@@ -69,7 +69,7 @@ export function Renderer2dGeometry() {
 
       // get label widths
       context.font = '30px monospace';
-      context.fillStyle = `hsl(0 0% ${darkRef.current ? '0' : '100'}% / 70%)`;
+      context.fillStyle = `hsl(0 0% ${themeDarkRef.current ? '0' : '100'}% / 70%)`;
       const labels = [
         { text: `Step ${steps.toLocaleString()}`, hue: 50 },
         { text: `${stepTime.toFixed(1)} ms`, hue: 150 },

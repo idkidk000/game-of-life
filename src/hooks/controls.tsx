@@ -3,9 +3,11 @@ import { EventEmitter } from '@/lib/event-emitter';
 import { defaultSimRules, defaultSimSpawn, type SimRules, type SimSpawn } from '@/lib/simulation';
 
 export enum Renderer {
-  Canvas2DGeometry,
-  Canvas2DPixel,
+  Canvas2dGeometry,
+  Canvas2dPixel,
   TwoJs,
+  ReglScatter2d,
+  Regl,
 }
 export interface Controls {
   bloom: boolean;
@@ -18,13 +20,13 @@ export interface Controls {
 }
 
 export const controlDefaults: Controls = {
-  bloom: true,
+  bloom: false,
   paused: false,
   rules: defaultSimRules,
-  scale: 0.3,
+  scale: 0.1,
   spawn: { ...defaultSimSpawn, enabled: defaultSimSpawn.chance > 0 },
   speed: 1,
-  renderer: Renderer.Canvas2DGeometry,
+  renderer: Renderer.Regl,
 };
 
 export enum Command {

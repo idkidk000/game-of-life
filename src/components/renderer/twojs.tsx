@@ -5,10 +5,10 @@ import { useControls } from '@/hooks/controls';
 import { useSimulation } from '@/hooks/simulation';
 import { useTheme } from '@/hooks/theme';
 
-/** very slow. two.js is best at handling retained objects which are created on init. i'm rebuilding the entire scene every frame. it can't do instanced rendering so this won't work */
+/** very slow. two.js is best at handling retained objects which are created on init. i'm rebuilding the entire scene every frame. it can't do instanced rendering so this won't work. also tried creating a rect for each pixel on init and then updating on each frame but that locks up the tab */
 export function RendererTwoJs() {
   const { controlsRef } = useControls();
-  const { darkRef } = useTheme();
+  const { themeDarkRef } = useTheme();
   const { simulationRef, stepTimesRef } = useSimulation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -19,21 +19,21 @@ export function RendererTwoJs() {
       type: 'WebGLRenderer',
       domElement: canvasRef.current,
       autostart: true,
-      // width: canvasRef.current.width,
-      // height: canvasRef.current.height,
+      width: canvasRef.current.width,
+      height: canvasRef.current.height,
+      ratio: 1,
     });
+    // twojs i am begging you to stop
+    canvasRef.current.style.width = 'unset';
+    canvasRef.current.style.height = 'unset';
 
     two.bind('update', () => {
       if (!canvasRef.current) return;
 
-      // twojs i am begging you to stop
-      // canvasRef.current.style.width = 'unset';
-      // canvasRef.current.style.height = 'unset';
-
       if (!controlsRef.current.paused) stepTimesRef.current.push(simulationRef.current.step(controlsRef.current.speed));
 
-      const lightness = `${darkRef.current ? '70' : '30'}%`;
-      const background = `hsl(0 0% ${darkRef.current ? '0' : '100'}% / 70%)`;
+      const lightness = `${themeDarkRef.current ? '70' : '30'}%`;
+      const background = `hsl(0 0% ${themeDarkRef.current ? '0' : '100'}% / 70%)`;
 
       two.clear();
       const bg = two.makeRectangle(0, 0, canvasRef.current.width, canvasRef.current.height);

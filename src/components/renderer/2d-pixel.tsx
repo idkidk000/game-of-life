@@ -6,9 +6,9 @@ import { useTheme } from '@/hooks/theme';
 import { SlidingWindow } from '@/lib/sliding-window';
 
 /** this is slower than rendering geometry at native resolution since we have to loop over all screen pixels of the cell */
-export function Renderer2DPixel() {
+export function Renderer2dPixel() {
   const { controlsRef } = useControls();
-  const { darkRef } = useTheme();
+  const { themeDarkRef } = useTheme();
   const { simulationRef, stepTimesRef } = useSimulation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -61,7 +61,7 @@ export function Renderer2DPixel() {
 
       // get label widths
       context.font = '30px monospace';
-      context.fillStyle = `hsl(0 0% ${darkRef.current ? '0' : '100'}% / 70%)`;
+      context.fillStyle = `hsl(0 0% ${themeDarkRef.current ? '0' : '100'}% / 70%)`;
       const labels = [
         { text: `Step ${steps.toLocaleString()}`, hue: 50 },
         { text: `${stepTime.toFixed(1)} ms`, hue: 150 },
@@ -73,7 +73,7 @@ export function Renderer2DPixel() {
       });
 
       // render labels
-      const lightness = `${darkRef.current ? '70' : '30'}%`;
+      const lightness = `${themeDarkRef.current ? '70' : '30'}%`;
       // the magic numbers are 50px line height (font size is 30px) so 10px above and below
       // fillText origin is bottom left
       const maxWidth = labels.reduce((acc, item) => Math.max(acc, item.width), 0);

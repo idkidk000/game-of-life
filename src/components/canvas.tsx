@@ -3,10 +3,11 @@ import { Command, useControls } from '@/hooks/controls';
 import { useSimulation } from '@/hooks/simulation';
 
 export function Canvas({ canvasRef }: { canvasRef: RefObject<HTMLCanvasElement | null> }) {
-  const { controlsRef, commandsRef, setControls } = useControls();
+  const { controls, controlsRef, commandsRef, setControls } = useControls();
   const { simulationRef } = useSimulation();
 
   // resize the canvas to fit the element
+  // FIXME: break into a callback, a useEffect for controls.scale, and a useLayoutEffect for the observer with no deps
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   useLayoutEffect(() => {
     if (!canvasRef.current) return;
@@ -17,15 +18,15 @@ export function Canvas({ canvasRef }: { canvasRef: RefObject<HTMLCanvasElement |
       const { width, height } = contentRect;
       element.width = Math.round(width);
       element.height = Math.round(height);
-      const simWidth = Math.round(element.width * controlsRef.current.scale);
-      const simHeight = Math.round(element.height * controlsRef.current.scale);
+      const simWidth = Math.round(element.width * controls.scale);
+      const simHeight = Math.round(element.height * controls.scale);
       if (simulationRef.current.width !== simWidth || simulationRef.current.height !== simHeight) simulationRef.current.updateSize(simWidth, simHeight);
     });
 
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, []);
+  }, [controls]);
 
   // save canvas img
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object

@@ -11,12 +11,79 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  &:has(body.amber) {
+    --accent: var(--color-amber-500);
+  }
+  &:has(body.blue) {
+    --accent: var(--color-blue-500);
+  }
+  &:has(body.cyan) {
+    --accent: var(--color-cyan-500);
+  }
+  &:has(body.emerald) {
+    --accent: var(--color-emerald-500);
+  }
+  &:has(body.fuchsia) {
+    --accent: var(--color-fuchsia-500);
+  }
+  &:has(body.gray) {
+    --accent: var(--color-gray-500);
+  }
+  &:has(body.green) {
+    --accent: var(--color-green-500);
+  }
+  &:has(body.indigo) {
+    --accent: var(--color-indigo-500);
+  }
+  &:has(body.lime) {
+    --accent: var(--color-lime-500);
+  }
+  &:has(body.neutral) {
+    --accent: var(--color-neutral-500);
+  }
+  &:has(body.orange) {
+    --accent: var(--color-orange-500);
+  }
+  /* &:has(body.pink) { */
+  --accent: var(--color-pink-500);
+  /* } */
+  &:has(body.purple) {
+    --accent: var(--color-purple-500);
+  }
+  &:has(body.red) {
+    --accent: var(--color-red-500);
+  }
+  &:has(body.rose) {
+    --accent: var(--color-rose-500);
+  }
+  &:has(body.sky) {
+    --accent: var(--color-sky-500);
+  }
+  &:has(body.slate) {
+    --accent: var(--color-slate-500);
+  }
+  &:has(body.stone) {
+    --accent: var(--color-stone-500);
+  }
+  &:has(body.teal) {
+    --accent: var(--color-teal-500);
+  }
+  &:has(body.violet) {
+    --accent: var(--color-violet-500);
+  }
+  &:has(body.yellow) {
+    --accent: var(--color-yellow-500);
+  }
+  &:has(body.zinc) {
+    --accent: var(--color-zinc-500);
+  }
 }
 
 @theme inline {
   --color-foreground: light-dark(#000, #fff);
   --color-background: light-dark(#fff, #000);
-  --color-accent: var(--color-pink-500);
+  --color-accent: var(--accent);
 }
 
 @layer base {

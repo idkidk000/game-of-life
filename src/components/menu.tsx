@@ -26,12 +26,13 @@ interface Context {
 
 const Context = createContext<Context | null>(null);
 
-function elemContains(
-  elem: { getBoundingClientRect: () => { top: number; left: number; bottom: number; right: number } },
-  event: { clientX: number; clientY: number }
-): boolean {
+function elemContains(elem: HTMLElement, event: PointerEvent): boolean {
   const rect = elem.getBoundingClientRect();
-  return event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+  return (
+    elem === event.target
+    || elem.contains(event.target as Node)
+    || (event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom)
+  );
 }
 
 /** context provider. requires `MenuTrigger` and `MenuContent` children */
@@ -76,7 +77,7 @@ export function Menu({
 
   const contextValue: Context = useMemo(() => ({ triggerRef, setState, state, stateRef, closingMillis, menuRef }), [closingMillis, state]);
 
-  return <Context.Provider value={contextValue}>{children}</Context.Provider>;
+  return <Context value={contextValue}>{children}</Context>;
 }
 
 function useMenu() {

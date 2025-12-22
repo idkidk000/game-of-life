@@ -19,7 +19,7 @@ function Cell({ number, value, onValueChange }: { number: number; value: SimRule
 
   return (
     <span className='flex gap-2 items-center'>
-      <label>{number}</label>
+      <label htmlFor={id}>{number}</label>
       <input id={id} type='checkbox' onChange={handleChange} checked={value.includes(number as SimRule[number])} />
     </span>
   );
