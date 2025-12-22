@@ -1,4 +1,15 @@
-import { createContext, type Dispatch, type ReactNode, type RefObject, type SetStateAction, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  type Dispatch,
+  type ReactNode,
+  type RefObject,
+  type SetStateAction,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 export enum ThemePreference {
   Dark,
@@ -44,20 +55,23 @@ interface Context {
 
 const Context = createContext<Context | null>(null);
 
+/** FIXME: useLayoutEffects are firing twice but that might just be react strict mode */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeColour, setThemeColour] = useState<ThemeColour>('pink');
   const [themeDark, setDark] = useState(true);
   const [themePreference, setThemePreference] = useState(ThemePreference.Dark);
   const themeDarkRef = useRef(themeDark);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const query = window.matchMedia('(prefers-color-scheme: dark)');
     const controller = new AbortController();
     const update = () => {
       const nextDark = (themePreference === ThemePreference.Auto && query.matches) || themePreference === ThemePreference.Dark;
       console.debug('ThemeProvider', { themePreference, matches: query.matches, nextDark });
-      setDark(nextDark);
-      themeDarkRef.current = nextDark;
+      if (nextDark !== themeDarkRef.current) {
+        setDark(nextDark);
+        themeDarkRef.current = nextDark;
+      }
       const [remove, add] = nextDark ? ['scheme-only-light', 'scheme-only-dark'] : ['scheme-only-dark', 'scheme-only-light'];
       document.body.classList.remove(remove);
       document.body.classList.add(add);
@@ -67,7 +81,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => controller.abort();
   }, [themePreference]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     console.debug('ThemeProvider', { themeColour });
     for (const colour of themeColours.filter((colour) => colour !== themeColour)) document.body.classList.remove(colour);
     document.body.classList.add(themeColour);

@@ -1,89 +1,121 @@
+/**
+ * @noprettier STOP INVENTING STUPID PLACES TO PUT A SEMICOLON PLEASE
+ */
+
+import convert from 'color-convert';
 import { useEffect, useRef } from 'react';
 import REGL from 'regl';
 import { Canvas } from '@/components/canvas';
+import { useControls } from '@/hooks/controls';
 import { useSimulation } from '@/hooks/simulation';
 import { useTheme } from '@/hooks/theme';
+import { SlidingWindow } from '@/lib/sliding-window';
 
 /** TODO:
- *  - pixel sizes (position attribute of vertex shader) need to be based on current sim geometry. passing in the full coords of each triangle vertex in `draw` could work but seems inefficient
- *  - re-add `color-convert` package and make nice colours
- *  - don't recreate shaders on every frame (unless that's normal)
- *  - compositing
+ *  - optimise a lot
+ *  - bloom
+ *  - stats as text labels. maybe render in a 2d canvas and add as textures?? or maybe even dom elements wouldn't be too bad idk
  */
 export function RendererRegl() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { controlsRef } = useControls();
+  const { simulationRef, stepTimesRef } = useSimulation();
   const { themeDarkRef } = useTheme();
-  const { simulationRef } = useSimulation();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref objects
   useEffect(() => {
     if (!canvasRef.current) return;
-    const regl = REGL({ canvas: canvasRef.current, pixelRatio: 1 });
+    const frameTimes = new SlidingWindow<number>(100);
+    const regl = REGL({ canvas: canvasRef.current, extensions: ['angle_instanced_arrays'] });
+    //FIXME: these either need to be dynamically sized or recreated/resized on sim size change
+    const colourBuffer = regl.buffer({ type: 'uint8', usage: 'dynamic', length: simulationRef.current.size * 3 });
+    const offsetBuffer = regl.buffer({ type: 'uint16', usage: 'dynamic', length: simulationRef.current.size * 2 });
+    //FIXME: this is a generic but i don't understand how it's meant to work
     const draw = regl({
-      // Shaders in regl are just strings.  You can use glslify or whatever you want
-      // to define them.  No need to manually create shader objects.
       frag: `
-    precision mediump float;
-    uniform vec4 colour;
-    void main() {
-      gl_FragColor = colour;
-    }`,
-
+        precision mediump float;
+        varying vec3 vColour;
+        void main() {
+          gl_FragColor = vec4(vColour / 255.0, 1.0);
+        }`,
+      //FIXME: maffs
       vert: `
-    precision mediump float;
-    attribute vec2 position;
-    uniform vec2 offset;
-    void main() {
-      gl_Position = vec4(position.x + offset.x, position.y + offset.y, 0, 1);
-    }`,
-
+        precision mediump float;
+        attribute vec2 position;
+        attribute vec3 colour;
+        attribute vec2 offset;
+        uniform vec2 gridSize;
+        varying vec3 vColour;
+        void main() {
+          gl_Position = vec4(position.x / gridSize.x + offset.x * 2.0 / gridSize.x - 1.0, -(position.y / gridSize.y + offset.y * 2.0 / gridSize.y - 1.0), 0, 1);
+          vColour = colour;
+        }`,
       attributes: {
-        // it seems like we have to draw triangles and the coordinate ranges are -1 to 1 x and y
         position: [
-          [-0.01, -0.01],
-          [0.01, -0.01],
-          [-0.01, 0.01],
-
-          [0.01, 0.01],
-          [-0.01, 0.01],
-          [0.01, -0.01],
+          // a quad. this is used for the base instance
+          [-1, -1],
+          [1, -1],
+          [-1, 1],
+          [-1, 1],
+          [1, -1],
+          [1, 1],
         ],
+        colour: {
+          buffer: colourBuffer,
+          // one stepping of vec3 (determined from the shader) per instance. not sure how other values would be useful
+          divisor: 1,
+        },
+        offset: {
+          buffer: offsetBuffer,
+          divisor: 1,
+        },
       },
-
       uniforms: {
-        // static colour
-        // colour: [1, 0, 0, 1],
-        // dynamic
-        // an attempt was made to type dynamic props but it doesn't work at all
-        colour: regl.prop('colour' as never),
-        offset: regl.prop('offset' as never),
+        gridSize: regl.prop('gridSize' as never),
       },
-
-      // This tells regl the number of vertices to draw in this command
       count: 6,
+      instances: regl.prop('instances' as never),
     });
 
-    // regl.frame() wraps requestAnimationFrame and also handles viewport changes
-    regl.frame(({ tick }) => {
-      simulationRef.current.step();
+    regl.frame(({ tick, time }) => {
+      frameTimes.push(time);
+      if (!controlsRef.current.paused) stepTimesRef.current.push(simulationRef.current.step(controlsRef.current.speed));
 
-      const drawParams = simulationRef.current
-        .values()
-        .map(([x, y, neighbours, age]) => ({
-          colour: [neighbours / 8, age / 255, 1, 1],
-          offset: [(x / simulationRef.current.width) * 2 - 1, (y / simulationRef.current.height) * 2 - 1],
-        }))
-        .toArray();
+      const { alive, steps } = simulationRef.current.stats();
+
+      // FIXME: don't recreate these every frame
+      const colourArray = new Uint8Array(alive * 3);
+      const offsetArray = new Uint16Array(alive * 2);
+      let i = 0;
+      for (const [x, y, age, neighbours] of simulationRef.current.values()) {
+        const [r, g, b] = convert.hsl.rgb(age, (100 / 3) * Math.min(3, neighbours), themeDarkRef.current ? 70 : 30);
+        colourArray[i * 3 + 0] = r;
+        colourArray[i * 3 + 1] = g;
+        colourArray[i * 3 + 2] = b;
+        offsetArray[i * 2 + 0] = x;
+        offsetArray[i * 2 + 1] = y;
+        ++i;
+      }
+
+      // FIXME: cxan i just write to the buffers directly??
+      colourBuffer.subdata(colourArray);
+      offsetBuffer.subdata(offsetArray);
 
       regl.clear({
-        //TODO: both produce black
-        color: themeDarkRef ? [0, 0, 0, 1] : [1, 1, 1, 1],
+        color: themeDarkRef.current ? [0, 0, 0, 1] : [1, 1, 1, 1],
         depth: 1,
       });
+      draw({ instances: alive, gridSize: [simulationRef.current.width,simulationRef.current.height] });
 
-      draw(drawParams);
-      if (tick % 1000 === 0) console.debug({ tick }, drawParams);
+      if (tick < 10 || tick % 1000 === 0) {
+        const stepTime = stepTimesRef.current.items().reduce((acc, item) => acc + item, 0) / stepTimesRef.current.size;
+        const frameRate = (1 / ((frameTimes.at(-1) ?? 0) - (frameTimes.at(0) ?? 0))) * (frameTimes.size - 1);
+
+        console.debug({ tick, stepTime, frameRate, alive, steps }, colourArray.length, offsetArray.length);
+      }
     });
+
+    return ()=>regl.destroy()
   }, []);
 
   return <Canvas canvasRef={canvasRef} />;

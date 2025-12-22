@@ -4,9 +4,6 @@ import { defaultSimRules, defaultSimSpawn, type SimRules, type SimSpawn } from '
 
 export enum Renderer {
   Canvas2dGeometry,
-  Canvas2dPixel,
-  TwoJs,
-  ReglScatter2d,
   Regl,
 }
 export interface Controls {
