@@ -1,6 +1,6 @@
-import { Dices } from 'lucide-react';
 import { type ChangeEvent, useCallback, useId } from 'react';
 import { Button } from '@/components/button';
+import { Dice } from '@/components/icons';
 import type { SimRule, SimRules } from '@/lib/simulation';
 
 const cells = Array.from({ length: 9 }, (_, i) => i);
@@ -61,7 +61,7 @@ export function Rules({ values, onValueChange }: { values: SimRules; onValueChan
       <Rule label='Survive' onValueChange={handleSurviveChange} title='Cell survives when this many live neighbours' value={values.survive} />
       <pre>{`B${values.born.toSorted().join('')}/S${values.survive.toSorted().join('')}`}</pre>
       <Button title='Randomise' onClick={handleRandomiseClick}>
-        <Dices />
+        <Dice />
       </Button>
     </div>
   );

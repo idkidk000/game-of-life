@@ -1,26 +1,26 @@
-import {
-  Axe,
-  Baby,
-  Bug,
-  Camera,
-  Computer,
-  Flame,
-  Fullscreen,
-  MenuIcon,
-  Moon,
-  Pause,
-  PersonStanding,
-  Play,
-  RedoDot,
-  RouteOff,
-  Shrink,
-  Sparkles,
-  Sun,
-  Trash,
-} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/button';
 import { Checkbox } from '@/components/checkbox';
+import {
+  Bug,
+  Camera,
+  Cut,
+  LightbulbOn,
+  Menu as MenuIcon,
+  Monitor,
+  Moon,
+  Next,
+  Pause,
+  Play,
+  Sliders2,
+  SunAlt,
+  Trash,
+  UserMinus,
+  UserPlus,
+  ViewportNarrow,
+  ViewportWide,
+  Zap,
+} from '@/components/icons';
 import { Menu, MenuClickToClose, MenuContent, MenuTrigger } from '@/components/menu';
 import { Range } from '@/components/range';
 import { Rules } from '@/components/rules';
@@ -243,7 +243,7 @@ export function Nav() {
               <Bug />
             </Button>
             <Button onClick={handleBloomClick} title='Bloom filter' className={controls.bloom ? 'bg-accent' : ''}>
-              <Flame />
+              <LightbulbOn />
             </Button>
             <Button
               onClick={handleThemeClick}
@@ -257,8 +257,8 @@ export function Nav() {
               {themePreference === ThemePreference.Dark ?
                 <Moon />
               : themePreference === ThemePreference.Light ?
-                <Sun />
-              : <Computer />}
+                <SunAlt />
+              : <Monitor />}
             </Button>
             <Select
               label='Colour'
@@ -290,25 +290,25 @@ export function Nav() {
         : <Play />}
       </Button>
       <Button onClick={handleStepClick} title='Single step'>
-        <RedoDot />
+        <Next />
       </Button>
       <Button onClick={handleClearClick} title='Clear'>
         <Trash />
       </Button>
       <Button onClick={handleSeedClick} title='Seed'>
-        <Sparkles />
+        <Zap />
       </Button>
       <Menu clickToClose={MenuClickToClose.Both}>
         <MenuTrigger title='Prune'>
-          <Axe />
+          <Cut />
         </MenuTrigger>
         <MenuContent width='auto'>
           <div className='flex flex-row gap-4 p-4'>
             <Button title='Youngest' onClick={handlePruneYoungestClick}>
-              <Baby />
+              <UserMinus />
             </Button>
             <Button title='Oldest' onClick={handlePruneOldestClick}>
-              <PersonStanding />
+              <UserPlus />
             </Button>
           </div>
         </MenuContent>
@@ -319,12 +319,12 @@ export function Nav() {
         disabled={objectIsEqual(omit(controlDefaults, ['paused']), omit(controls, ['paused']))}
         title='Reset controls'
       >
-        <RouteOff />
+        <Sliders2 />
       </Button>
       <Button title={fullScreen ? 'Minimise' : 'Full screen'} onClick={handleFullScreenClick} className={fullScreen ? 'bg-accent' : undefined}>
         {fullScreen ?
-          <Shrink />
-        : <Fullscreen />}
+          <ViewportNarrow />
+        : <ViewportWide />}
       </Button>
       <Button title='Save image' onClick={handleSaveClick}>
         <Camera />

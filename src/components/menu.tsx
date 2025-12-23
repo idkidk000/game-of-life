@@ -70,6 +70,7 @@ export function Menu({
       },
       { signal: controller.signal }
     );
+    return () => controller.abort();
   }, [closingMillis, clickToClose]);
 
   const contextValue: Context = useMemo(() => ({ triggerRef, setState, state, stateRef, closingMillis, menuRef }), [closingMillis, state]);
@@ -109,7 +110,7 @@ export function MenuTrigger({ children, className, ...props }: Omit<ComponentPro
 
 export function MenuContent({
   children,
-  className = 'starting:opacity-0 starting:scale-95 starting:-translate-y-[25dvh] origin-center duration-200 ease-in transition-[opacity,scale,translate]',
+  className = 'starting:opacity-0 starting:scale-95 starting:-translate-y-[25dvh] origin-center duration-200 ease-in transition-[opacity,scale,translate] z-10',
   classNameClosed = 'hidden',
   classNameClosing = 'scale-95 opacity-0 translate-y-[25dvh]',
   classNameOpen = 'scale-100 opacity-100 translate-y-0',

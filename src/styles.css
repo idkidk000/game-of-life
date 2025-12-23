@@ -1,12 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
 @import 'tailwindcss';
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: light dark;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -80,6 +79,10 @@
   }
 }
 
+@theme {
+  --font-label: 'Jersey 10', sans-serif;
+}
+
 @theme inline {
   --color-foreground: light-dark(#000, #fff);
   --color-background: light-dark(#fff, #000);
@@ -101,7 +104,7 @@
     @apply h-dvh;
   }
   button {
-    @apply bg-foreground/20 px-4 py-2 rounded-lg shadow transition-[background-color,color,border-color] duration-200 border-3 border-transparent;
+    @apply bg-foreground/20 px-4 py-2 shadow transition-[background-color,color,border-color] duration-200 border-3 border-transparent;
     &:not(:disabled) {
       &:hover {
         @apply bg-foreground/15 border-accent/50;
@@ -115,7 +118,7 @@
     }
   }
   .input-group {
-    @apply flex gap-4 items-center rounded-lg p-2 shadow border-3 border-transparent transition-[border-color] duration-200;
+    @apply flex gap-4 items-center p-2 shadow border-3 border-transparent transition-[border-color] duration-200;
     &:not(:has(:disabled)) {
       &:has(:hover) {
         @apply border-accent/50;
@@ -132,12 +135,12 @@
     @apply flex flex-wrap gap-4 items-center;
   }
   canvas {
-    @apply size-full border-3 rounded-lg border-accent bg-background;
+    @apply size-full border-3 border-accent bg-background;
   }
   :fullscreen canvas {
     @apply border-0;
   }
   menu {
-    @apply border-3 rounded-lg border-accent bg-background;
+    @apply border-3 border-accent bg-background;
   }
 }

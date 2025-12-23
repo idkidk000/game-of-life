@@ -7,7 +7,6 @@ export function Canvas({ canvasRef }: { canvasRef: RefObject<HTMLCanvasElement |
   const { simulationRef } = useSimulation();
 
   // resize the canvas to fit the element
-  // FIXME: break into a callback, a useEffect for controls.scale, and a useLayoutEffect for the observer with no deps
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   useLayoutEffect(() => {
     if (!canvasRef.current) return;
@@ -26,14 +25,14 @@ export function Canvas({ canvasRef }: { canvasRef: RefObject<HTMLCanvasElement |
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, [controls]);
+  }, [controls.scale]);
 
   // save canvas img
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   useEffect(() => {
     return commandsRef.current.subscribe(Command.Save, () => {
       if (!canvasRef.current) return;
-      // FIXME: this doesn't seem to work on a webgl2 canvas. the docs don't mention it
+      // FIXME: this doesn't seem to work on a webgl canvas. the docs don't mention it
       // might need to rework when i switch over to regl fully
       // https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob
       canvasRef.current.toBlob(

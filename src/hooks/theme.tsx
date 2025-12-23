@@ -55,11 +55,12 @@ interface Context {
 
 const Context = createContext<Context | null>(null);
 
-/** FIXME: useLayoutEffects are firing twice but that might just be react strict mode */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeColour, setThemeColour] = useState<ThemeColour>((localStorage.getItem('themeColour') ?? 'pink') as ThemeColour);
+  const [themeColour, setThemeColour] = useState<ThemeColour>((localStorage.getItem('themeColour') ?? 'indigo') as ThemeColour);
   const [themeDark, setDark] = useState(true);
-  const [themePreference, setThemePreference] = useState<ThemePreference>(Number(localStorage.getItem('themePreference') ?? ThemePreference.Dark) as ThemePreference);
+  const [themePreference, setThemePreference] = useState<ThemePreference>(
+    Number(localStorage.getItem('themePreference') ?? ThemePreference.Dark) as ThemePreference
+  );
   const themeDarkRef = useRef(themeDark);
 
   useLayoutEffect(() => {
@@ -84,7 +85,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useLayoutEffect(() => {
     console.debug('ThemeProvider', { themeColour });
-    for (const colour of themeColours.filter((colour) => colour !== themeColour)) document.body.classList.remove(colour);
+    document.body.classList.remove(...themeColours.filter((colour) => colour !== themeColour));
     document.body.classList.add(themeColour);
     localStorage.setItem('themeColour', themeColour);
   }, [themeColour]);

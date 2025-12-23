@@ -14,7 +14,7 @@ import { SlidingWindow } from '@/lib/sliding-window';
 type DynamicProps = { gridSize: [x: number, y: number]; instances: number };
 
 /** TODO:
- *  - bloom
+ *  - bloom. but the regl docs assume that you already know how to use webgl. which i do not.
  */
 export function RendererRegl() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,6 +29,7 @@ export function RendererRegl() {
     const frameTimes = new SlidingWindow<number>(100);
     // https://github.com/regl-project/regl/blob/gh-pages/API.md
     // https://github.com/regl-project/regl/tree/gh-pages/example
+    // `angle_instanced_arrays` is for instancing. `EXT_disjoint_timer_query` is for profiling during dev https://github.com/regl-project/regl/blob/main/API.md#profiling but it doesn't work
     const regl = REGL({ canvas: canvasRef.current, extensions: ['angle_instanced_arrays'] });
 
     let simSize = simulationRef.current.size;
@@ -40,7 +41,7 @@ export function RendererRegl() {
 
     // `regl` is a generic but doesn't infer types. with no type args, the returned function's param is typed as Partial<{}> | Partial<{}>[]
     const draw = regl<Record<string, unknown>, Record<string, unknown>, DynamicProps>({
-      // data types: https://wikis.khronos.org/opengl/Data_Type_(GLSL) but anything other than vecx seems to be a syntax error and won't compile. vecx are f32[] so i suppose the u8s and u16s are being cast by or before getting to the shaders? which i suppose is fine as long as long as they're being transferred around as u8 / u16
+      // data types: https://wikis.khronos.org/opengl/Data_Type_(GLSL) but anything other than vecx seems to be a syntax error and won't compile. maybe because this is webgl1 and not 2? vecx are f32[] so i suppose the u8s and u16s are being cast by or before getting to the shaders? which i suppose is fine as long as long as they're being transferred around as u8 / u16
       vert: `
         #pragma vscode_glsllint_stage : vert
         precision mediump float;
@@ -171,12 +172,12 @@ export function RendererRegl() {
   return (
     <>
       <Canvas canvasRef={canvasRef} />
-      <div className='fixed bottom-0 left-0 right-0 p-4 m-1 bg-background/70 rounded-md'>
-        <div className='grid grid-cols-[repeat(auto-fit,minmax(10ch,1fr))] gap-4 text-3xl font-medium text-center' ref={labelsRef}>
-          <span className='text-label-1' />
-          <span className='text-label-2' />
-          <span className='text-label-3' />
-          <span className='text-label-4' />
+      <div className='fixed bottom-0 left-0 right-0 p-4 m-1 bg-background/70'>
+        <div className='grid grid-cols-[repeat(auto-fit,minmax(8ch,1fr))] gap-4 text-5xl font-medium text-center max-w-6xl mx-auto' ref={labelsRef}>
+          <span className='text-label-1 font-label' />
+          <span className='text-label-2 font-label' />
+          <span className='text-label-3 font-label' />
+          <span className='text-label-4 font-label' />
         </div>
       </div>
     </>

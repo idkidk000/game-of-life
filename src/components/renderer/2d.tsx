@@ -19,7 +19,7 @@ export function Renderer2d() {
       desynchronized: true,
     });
     if (!context) return;
-    const abortController = new AbortController();
+    const controller = new AbortController();
     const frameTimes = new SlidingWindow<number>(100);
 
     const render = (time: number) => {
@@ -67,7 +67,7 @@ export function Renderer2d() {
       const frameRate = (1000 / ((frameTimes.at(-1) ?? 0) - (frameTimes.at(0) ?? 0))) * (frameTimes.size - 1);
 
       // get label widths
-      context.font = '30px monospace';
+      context.font = '40px "Jersey 10", sans-serif';
       context.fillStyle = `hsl(0 0% ${themeDarkRef.current ? '0' : '100'}% / 70%)`;
       const labels = [
         { text: `Step ${simulationRef.current.steps.toLocaleString()}`, hue: 50 },
@@ -97,12 +97,12 @@ export function Renderer2d() {
         );
       }
 
-      if (!abortController.signal.aborted) requestAnimationFrame(render);
+      if (!controller.signal.aborted) requestAnimationFrame(render);
     };
 
     requestAnimationFrame(render);
 
-    return () => abortController.abort();
+    return () => controller.abort();
   }, []);
 
   return <Canvas canvasRef={canvasRef} />;
