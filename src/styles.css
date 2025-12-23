@@ -84,6 +84,10 @@
   --color-foreground: light-dark(#000, #fff);
   --color-background: light-dark(#fff, #000);
   --color-accent: var(--accent);
+  --color-label-1: light-dark(var(--color-yellow-800), var(--color-yellow-200));
+  --color-label-2: light-dark(var(--color-emerald-800), var(--color-emerald-300));
+  --color-label-3: light-dark(var(--color-cyan-800), var(--color-cyan-300));
+  --color-label-4: light-dark(var(--color-indigo-800), var(--color-indigo-300));
 }
 
 @layer base {

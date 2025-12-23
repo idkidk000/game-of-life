@@ -41,6 +41,7 @@ export class Simulation {
   #born = 0;
   #survive = 0;
   #spawn: SimSpawn = { ...defaultSimSpawn };
+  #alive = 0;
   constructor(width: number, height: number, rules: SimRules = defaultSimRules, spawn: SimSpawn = defaultSimSpawn) {
     this.#width = width;
     this.#height = height;
@@ -60,6 +61,9 @@ export class Simulation {
   }
   get steps() {
     return this.#steps;
+  }
+  get alive() {
+    return this.#alive;
   }
   #indexToXy(index: number): [x: number, y: number] {
     return [index % this.#width, Math.floor(index / this.#width)];
@@ -87,17 +91,15 @@ export class Simulation {
     if (height < 10) height = 10;
     console.debug('sim resizing from', this.#width, 'x', this.#height, 'to', width, 'x', height);
     const resized = new Uint16Array(width * height);
-    // there's a bug where the first resize (page load) results in #current being filled with noise. subsequent resizes work fine
-    if (this.#current.some((value) => value > 5))
-      for (let i = 0; i < resized.length; ++i) {
-        const resizedX = i % width;
-        const resizedY = Math.floor(i / width);
-        const prevX = Math.round((resizedX / width) * this.#width);
-        const prevY = Math.round((resizedY / height) * this.#height);
-        const prevIndex = this.#xyToIndex(prevX, prevY);
-        const value = this.#current[prevIndex];
-        resized[i] = value;
-      }
+    for (let i = 0; i < resized.length; ++i) {
+      const resizedX = i % width;
+      const resizedY = Math.floor(i / width);
+      const prevX = Math.round((resizedX / width) * this.#width);
+      const prevY = Math.round((resizedY / height) * this.#height);
+      const prevIndex = this.#xyToIndex(prevX, prevY);
+      const value = this.#current[prevIndex];
+      resized[i] = value;
+    }
     this.#width = width;
     this.#height = height;
     this.#current = resized;
@@ -133,7 +135,7 @@ export class Simulation {
         if (dist2 > radius2) continue;
         const index = this.#xyToIndex(rx + x, ry + y);
         // clear the age and neighbour count. technically incorrect but faster than updating each cell's neighbours
-        this.#current[index] = this.#current[index] = 0;
+        this.#current[index] = 0;
       }
   }
   /** remove by age */
@@ -171,6 +173,7 @@ export class Simulation {
     for (let iteration = 0; iteration < count; ++iteration) {
       // outside of the loop so we don't interfere with neighbour count incrementing
       if (this.#spawn.chance / 100 >= Math.random()) this.spawn(...this.#indexToXy(Math.round(Math.random() * this.#current.length)));
+      this.#alive = 0;
       // simulation loop
       for (let i = 0; i < this.#current.length; ++i) {
         const age = this.#current[i] >> 4;
@@ -189,6 +192,8 @@ export class Simulation {
           ++this.#next[this.#xyToIndex(x - 1, y - 1)];
           ++this.#next[this.#xyToIndex(x - 1, y + 0)];
           ++this.#next[this.#xyToIndex(x - 1, y + 1)];
+          // accessible as a property
+          ++this.#alive;
         }
       }
       // swap arrays
@@ -203,14 +208,7 @@ export class Simulation {
     for (let i = 0; i < this.#current.length; ++i)
       if (all || this.#current[i] & 0xff0) yield [...this.#indexToXy(i), this.#current[i] >> 4, this.#current[i] & 0xf];
   }
-  stats(): { alive: number; steps: number } {
-    let alive = 0;
-    for (let i = 0; i < this.#current.length; ++i) {
-      if (this.#current[i] & 0xff0) ++alive;
-    }
-    return { alive, steps: this.#steps };
-  }
-  /** apparently there is no browser equivalent of `inspect.custom` from `node:util` */
+  /** there is no browser equivalent of `inspect.custom` from `node:util` */
   inspect() {
     return {
       width: this.#width,

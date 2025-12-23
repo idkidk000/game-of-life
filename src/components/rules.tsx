@@ -5,8 +5,11 @@ import type { SimRule, SimRules } from '@/lib/simulation';
 
 const cells = Array.from({ length: 9 }, (_, i) => i);
 
-function randomise() {
-  return cells.toSorted(() => Math.random() - 0.5).slice(0, 1 + Math.random() * 2) as SimRule;
+function randomise(): SimRule {
+  const count = 1 + Math.round(Math.random() * 2);
+  const set = new Set<number>();
+  while (set.size < count) set.add(1 + Math.round(Math.random() * 7));
+  return [...set].toSorted() as SimRule;
 }
 
 function Cell({ number, value, onValueChange }: { number: number; value: SimRule; onValueChange: (value: SimRule) => unknown }) {

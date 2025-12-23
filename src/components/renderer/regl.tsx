@@ -11,112 +11,174 @@ import { useSimulation } from '@/hooks/simulation';
 import { useTheme } from '@/hooks/theme';
 import { SlidingWindow } from '@/lib/sliding-window';
 
+type DynamicProps = { gridSize: [x: number, y: number]; instances: number };
+
 /** TODO:
- *  - optimise a lot
  *  - bloom
- *  - stats as text labels. maybe render in a 2d canvas and add as textures?? or maybe even dom elements wouldn't be too bad idk
  */
 export function RendererRegl() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { controlsRef } = useControls();
   const { simulationRef, stepTimesRef } = useSimulation();
   const { themeDarkRef } = useTheme();
+  const labelsRef = useRef<HTMLDivElement>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref objects
   useEffect(() => {
     if (!canvasRef.current) return;
     const frameTimes = new SlidingWindow<number>(100);
+    // https://github.com/regl-project/regl/blob/gh-pages/API.md
+    // https://github.com/regl-project/regl/tree/gh-pages/example
     const regl = REGL({ canvas: canvasRef.current, extensions: ['angle_instanced_arrays'] });
-    //FIXME: these either need to be dynamically sized or recreated/resized on sim size change
-    const colourBuffer = regl.buffer({ type: 'uint8', usage: 'dynamic', length: simulationRef.current.size * 3 });
-    const offsetBuffer = regl.buffer({ type: 'uint16', usage: 'dynamic', length: simulationRef.current.size * 2 });
-    //FIXME: this is a generic but i don't understand how it's meant to work
-    const draw = regl({
-      frag: `
-        precision mediump float;
-        varying vec3 vColour;
-        void main() {
-          gl_FragColor = vec4(vColour / 255.0, 1.0);
-        }`,
-      //FIXME: maffs
+
+    let simSize = simulationRef.current.size;
+    // usage: 'dynamic' is for write many, though all values work so this is probably a compiler hint
+    const colourBuffer = regl.buffer({ type: 'uint8', usage: 'dynamic', length: simSize * 3 });
+    const positionBuffer = regl.buffer({ type: 'uint16', usage: 'dynamic', length: simSize * 2 });
+    let colourArray = new Uint8Array(simSize * 3);
+    let positionArray = new Uint16Array(simSize * 2);
+
+    // `regl` is a generic but doesn't infer types. with no type args, the returned function's param is typed as Partial<{}> | Partial<{}>[]
+    const draw = regl<Record<string, unknown>, Record<string, unknown>, DynamicProps>({
+      // data types: https://wikis.khronos.org/opengl/Data_Type_(GLSL) but anything other than vecx seems to be a syntax error and won't compile. vecx are f32[] so i suppose the u8s and u16s are being cast by or before getting to the shaders? which i suppose is fine as long as long as they're being transferred around as u8 / u16
       vert: `
+        #pragma vscode_glsllint_stage : vert
         precision mediump float;
-        attribute vec2 position;
+        attribute vec2 verts;
+        // only attributes support instanced data
         attribute vec3 colour;
-        attribute vec2 offset;
+        attribute vec2 position;
+        // uniforms are per-call
         uniform vec2 gridSize;
+        // varying is for passing data from vertex to fragment shader
         varying vec3 vColour;
         void main() {
-          gl_Position = vec4(position.x / gridSize.x + offset.x * 2.0 / gridSize.x - 1.0, -(position.y / gridSize.y + offset.y * 2.0 / gridSize.y - 1.0), 0, 1);
+          vec2 scale = 2.0 / gridSize;
+          // coord space is -1 to 1
+          vec2 cell = vec2(-1.0, -1.0) + verts * scale + position * scale;
+          // gl y is inverted to the canvas and sim
+          gl_Position = vec4(cell.x, -cell.y, 0, 1);
+          // attributes have to be passed as varyings to the fragment shader
           vColour = colour;
         }`,
+      frag: `
+        #pragma vscode_glsllint_stage : frag
+        precision mediump float;
+        varying vec3 vColour;
+        void main() {
+          // from the vertex shader
+          gl_FragColor = vec4(vColour / 255.0, 1.0);
+        }`,
       attributes: {
-        position: [
+        verts: [
           // a quad. this is used for the base instance
-          [-1, -1],
-          [1, -1],
-          [-1, 1],
-          [-1, 1],
-          [1, -1],
+          [0, 0],
+          [1, 0],
+          [0, 1],
+          [0, 1],
+          [1, 0],
           [1, 1],
         ],
         colour: {
           buffer: colourBuffer,
-          // one stepping of vec3 (determined from the shader) per instance. not sure how other values would be useful
+          // one stepping of vec3 (determined from the shader i suppose) per instance
           divisor: 1,
         },
-        offset: {
-          buffer: offsetBuffer,
+        position: {
+          buffer: positionBuffer,
           divisor: 1,
         },
       },
-      uniforms: {
-        gridSize: regl.prop('gridSize' as never),
-      },
+      // vert count
       count: 6,
-      instances: regl.prop('instances' as never),
+      // per-call values
+      uniforms: {
+        gridSize: regl.prop<DynamicProps, 'gridSize'>('gridSize'),
+      },
+      instances: regl.prop<DynamicProps, 'instances'>('instances'),
+      // TODO: disable this
+      profile: true,
     });
 
+    // per-frame callback
     regl.frame(({ tick, time }) => {
       frameTimes.push(time);
       if (!controlsRef.current.paused) stepTimesRef.current.push(simulationRef.current.step(controlsRef.current.speed));
 
-      const { alive, steps } = simulationRef.current.stats();
+      // recreate buffers on sim size change
+      if (simulationRef.current.size !== simSize) {
+        console.debug('resizing regl buffers from', simSize, 'to', simulationRef.current.size);
+        simSize = simulationRef.current.size;
+        colourBuffer({ type: 'uint8', usage: 'dynamic', length: simSize * 3 });
+        positionBuffer({ type: 'uint16', usage: 'dynamic', length: simSize * 2 });
+        colourArray = new Uint8Array(simSize * 3);
+        positionArray = new Uint16Array(simSize * 2);
+      }
 
-      // FIXME: don't recreate these every frame
-      const colourArray = new Uint8Array(alive * 3);
-      const offsetArray = new Uint16Array(alive * 2);
+      // fill the typed arrays with sim data
       let i = 0;
       for (const [x, y, age, neighbours] of simulationRef.current.values()) {
         const [r, g, b] = convert.hsl.rgb(age, (100 / 3) * Math.min(3, neighbours), themeDarkRef.current ? 70 : 30);
         colourArray[i * 3 + 0] = r;
         colourArray[i * 3 + 1] = g;
         colourArray[i * 3 + 2] = b;
-        offsetArray[i * 2 + 0] = x;
-        offsetArray[i * 2 + 1] = y;
+        positionArray[i * 2 + 0] = x;
+        positionArray[i * 2 + 1] = y;
         ++i;
       }
 
-      // FIXME: cxan i just write to the buffers directly??
-      colourBuffer.subdata(colourArray);
-      offsetBuffer.subdata(offsetArray);
+      // copy the updated part of the typed arrays to the regl buffers
+      colourBuffer.subdata(colourArray.subarray(0, (i + 1) * 3));
+      positionBuffer.subdata(positionArray.subarray(0, (i + 1) * 2));
 
-      regl.clear({
-        color: themeDarkRef.current ? [0, 0, 0, 1] : [1, 1, 1, 1],
-        depth: 1,
-      });
-      draw({ instances: alive, gridSize: [simulationRef.current.width,simulationRef.current.height] });
+      // render
+      regl.clear({ color: themeDarkRef.current ? [0, 0, 0, 1] : [1, 1, 1, 1], depth: 1 });
+      // `instances` here is mapped to `instances` on the regl command and tells it how many entries to render from the buffers, so we don't need to worry about clearing old data
+      draw({ instances: i, gridSize: [simulationRef.current.width, simulationRef.current.height] });
 
-      if (tick < 10 || tick % 1000 === 0) {
-        const stepTime = stepTimesRef.current.items().reduce((acc, item) => acc + item, 0) / stepTimesRef.current.size;
-        const frameRate = (1 / ((frameTimes.at(-1) ?? 0) - (frameTimes.at(0) ?? 0))) * (frameTimes.size - 1);
-
-        console.debug({ tick, stepTime, frameRate, alive, steps }, colourArray.length, offsetArray.length);
+      // labels and debug
+      if (tick % 10 > 0) return;
+      const stepTime = stepTimesRef.current.items().reduce((acc, item) => acc + item, 0) / stepTimesRef.current.size;
+      const frameRate = (1 / ((frameTimes.at(-1) ?? 0) - (frameTimes.at(0) ?? 0))) * (frameTimes.size - 1);
+      const { alive, steps } = simulationRef.current;
+      if (tick % 1000 === 0) {
+        const reglStats = regl.stats;
+        const drawStats = draw.stats;
+        console.debug({
+          tick,
+          stepTime,
+          frameRate,
+          alive,
+          steps,
+          reglStats,
+          drawStats,
+          colourArrayLength: colourArray.length,
+          positionArrayLength: positionArray.length,
+        });
       }
+
+      if (!labelsRef.current) return;
+      // FIXME: this is not very clever. render to a 2d canvas every n frames and push to regl as a texture
+      (labelsRef.current.children[0] as HTMLSpanElement).innerText = `Step ${steps.toLocaleString()}`;
+      (labelsRef.current.children[1] as HTMLSpanElement).innerText = `${stepTime.toFixed(1)} ms`;
+      (labelsRef.current.children[2] as HTMLSpanElement).innerText = `${frameRate.toFixed(1)} fps`;
+      (labelsRef.current.children[3] as HTMLSpanElement).innerText = `${alive.toLocaleString()} alive`;
     });
 
-    return ()=>regl.destroy()
+    return () => regl.destroy();
   }, []);
 
-  return <Canvas canvasRef={canvasRef} />;
+  return (
+    <>
+      <Canvas canvasRef={canvasRef} />
+      <div className='fixed bottom-0 left-0 right-0 p-4 m-1 bg-background/70 rounded-md'>
+        <div className='grid grid-cols-[repeat(auto-fit,minmax(10ch,1fr))] gap-4 text-3xl font-medium text-center' ref={labelsRef}>
+          <span className='text-label-1' />
+          <span className='text-label-2' />
+          <span className='text-label-3' />
+          <span className='text-label-4' />
+        </div>
+      </div>
+    </>
+  );
 }

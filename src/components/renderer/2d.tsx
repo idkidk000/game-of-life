@@ -5,7 +5,7 @@ import { useSimulation } from '@/hooks/simulation';
 import { useTheme } from '@/hooks/theme';
 import { SlidingWindow } from '@/lib/sliding-window';
 
-export function Renderer2dGeometry() {
+export function Renderer2d() {
   const { controlsRef } = useControls();
   const { themeDarkRef } = useTheme();
   const { simulationRef, stepTimesRef } = useSimulation();
@@ -62,7 +62,6 @@ export function Renderer2dGeometry() {
       }
 
       // generate labels
-      const { alive, steps } = simulationRef.current.stats();
       // this is faking accuracy since performance.now() is an integer in the frontend
       const stepTime = stepTimesRef.current.items().reduce((acc, item) => acc + item, 0) / stepTimesRef.current.size;
       const frameRate = (1000 / ((frameTimes.at(-1) ?? 0) - (frameTimes.at(0) ?? 0))) * (frameTimes.size - 1);
@@ -71,10 +70,10 @@ export function Renderer2dGeometry() {
       context.font = '30px monospace';
       context.fillStyle = `hsl(0 0% ${themeDarkRef.current ? '0' : '100'}% / 70%)`;
       const labels = [
-        { text: `Step ${steps.toLocaleString()}`, hue: 50 },
+        { text: `Step ${simulationRef.current.steps.toLocaleString()}`, hue: 50 },
         { text: `${stepTime.toFixed(1)} ms`, hue: 150 },
         { text: `${frameRate.toFixed(1)} fps`, hue: 200 },
-        { text: `${alive.toLocaleString()} alive`, hue: 250 },
+        { text: `${simulationRef.current.alive.toLocaleString()} alive`, hue: 250 },
       ].map((item) => {
         const { width } = context.measureText(item.text);
         return { ...item, width };

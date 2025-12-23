@@ -3,7 +3,7 @@ import { EventEmitter } from '@/lib/event-emitter';
 import { defaultSimRules, defaultSimSpawn, type SimRules, type SimSpawn } from '@/lib/simulation';
 
 export enum Renderer {
-  Canvas2dGeometry,
+  Canvas2d,
   Regl,
 }
 export interface Controls {
@@ -27,13 +27,8 @@ export const controlDefaults: Controls = {
 };
 
 export enum Command {
-  Clear,
-  PruneYoungest,
-  PruneOldest,
+  /** this needs to remain as a command for now since saving the image requires a ref to the canvas */
   Save,
-  Seed,
-  Step,
-  Dump,
 }
 
 interface Context {
@@ -45,13 +40,20 @@ interface Context {
 
 const Context = createContext<Context | null>(null);
 
+function getStoredValue(): Controls | null {
+  const value = localStorage.getItem('controls');
+  if (!value) return null;
+  return JSON.parse(value) as Controls;
+}
+
 export function ControlsProvider({ children }: { readonly children: ReactNode }) {
-  const [controls, setControls] = useState<Controls>(controlDefaults);
+  const [controls, setControls] = useState<Controls>(getStoredValue() ?? controlDefaults);
   const controlsRef = useRef<Controls>(controls);
   const commandsRef = useRef(new EventEmitter<Command>());
 
   useEffect(() => {
     controlsRef.current = controls;
+    localStorage.setItem('controls', JSON.stringify(controls));
   }, [controls]);
 
   const contextValue: Context = useMemo(() => ({ controls, setControls, controlsRef, commandsRef }), [controls]);

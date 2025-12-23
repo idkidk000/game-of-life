@@ -26,12 +26,15 @@ import { Range } from '@/components/range';
 import { Rules } from '@/components/rules';
 import { Select } from '@/components/select';
 import { Command, type Controls as ControlsType, controlDefaults, Renderer, useControls } from '@/hooks/controls';
+import { useSimulation } from '@/hooks/simulation';
 import { type ThemeColour, ThemePreference, themeColours, useTheme } from '@/hooks/theme';
+import { SimPrune } from '@/lib/simulation';
 import { objectIsEqual, omit } from '@/lib/utils';
 
 export function Nav() {
-  const { setControls, controls, commandsRef } = useControls();
+  const { setControls, controls, controlsRef, commandsRef } = useControls();
   const { themePreference, setThemePreference, themeColour, setThemeColour } = useTheme();
+  const { simulationRef, stepTimesRef } = useSimulation();
   const [fullScreen, setFullScreen] = useState(!!document.fullscreenElement);
 
   // states
@@ -87,20 +90,20 @@ export function Nav() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleClearClick = useCallback(() => {
-    commandsRef.current.emit(Command.Clear);
-    setControls((prev) => ({ ...prev, paused: false }));
+    simulationRef.current.clear();
+    if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handlePruneYoungestClick = useCallback(() => {
-    commandsRef.current.emit(Command.PruneYoungest);
-    setControls((prev) => ({ ...prev, paused: false }));
+    simulationRef.current.prune(SimPrune.Youngest);
+    if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handlePruneOldestClick = useCallback(() => {
-    commandsRef.current.emit(Command.PruneOldest);
-    setControls((prev) => ({ ...prev, paused: false }));
+    simulationRef.current.prune(SimPrune.Oldest);
+    if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
@@ -108,18 +111,21 @@ export function Nav() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleSeedClick = useCallback(() => {
-    commandsRef.current.emit(Command.Seed);
-    setControls((prev) => ({ ...prev, paused: false }));
+    simulationRef.current.seed();
+    if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleStepClick = useCallback(() => {
-    commandsRef.current.emit(Command.Step);
-    setControls((prev) => ({ ...prev, paused: true }));
+    stepTimesRef.current.push(simulationRef.current.step());
+    if (!controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: true }));
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  const handleDumpClick = useCallback(() => commandsRef.current.emit(Command.Dump), []);
+  const handleDumpClick = useCallback(() => {
+    console.debug(...simulationRef.current.values().map(([x, y, age, neighbours]) => ({ x, y, age, neighbours })));
+    console.debug(simulationRef.current.inspect());
+  }, []);
 
   const handleFullScreenClick = useCallback(() => {
     // these both return promises but fullscreen can be exited outside of pressing the button so state is updated in a document event listener
@@ -131,6 +137,7 @@ export function Nav() {
     const shortcuts = new Map<string, () => unknown>([
       [' ', handlePausedClick],
       ['-', () => setControls((prev) => ({ ...prev, speed: Math.max(prev.speed - 1, 1) }))],
+      ['.', handleStepClick],
       ['*', handleSeedClick],
       ['+', () => setControls((prev) => ({ ...prev, speed: Math.min(prev.speed + 1, 10) }))],
       ['0', () => setControls((prev) => ({ ...prev, scale: 1 }))],
@@ -147,8 +154,7 @@ export function Nav() {
       ['d', handleDumpClick],
       ['f', handleFullScreenClick],
       ['o', handlePruneOldestClick],
-      ['r', () => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, enabled: !prev.spawn.enabled } }))],
-      ['s', handleStepClick],
+      ['s', () => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, enabled: !prev.spawn.enabled } }))],
       ['x', handleClearClick],
       ['y', handlePruneYoungestClick],
     ]);
@@ -156,7 +162,7 @@ export function Nav() {
     const controller = new AbortController();
 
     document.addEventListener(
-      'keyup',
+      'keydown',
       (event) => {
         const shortcut = shortcuts.get(event.key.toLocaleLowerCase());
         if (!shortcut) return;

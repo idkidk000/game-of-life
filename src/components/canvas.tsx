@@ -33,6 +33,9 @@ export function Canvas({ canvasRef }: { canvasRef: RefObject<HTMLCanvasElement |
   useEffect(() => {
     return commandsRef.current.subscribe(Command.Save, () => {
       if (!canvasRef.current) return;
+      // FIXME: this doesn't seem to work on a webgl2 canvas. the docs don't mention it
+      // might need to rework when i switch over to regl fully
+      // https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob
       canvasRef.current.toBlob(
         (blob) => {
           if (!blob) return;

@@ -27,12 +27,9 @@ interface Context {
 const Context = createContext<Context | null>(null);
 
 function elemContains(elem: HTMLElement, event: PointerEvent): boolean {
+  if (elem === event.target || elem.contains(event.target as Node)) return true;
   const rect = elem.getBoundingClientRect();
-  return (
-    elem === event.target
-    || elem.contains(event.target as Node)
-    || (event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom)
-  );
+  return event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
 }
 
 /** context provider. requires `MenuTrigger` and `MenuContent` children */

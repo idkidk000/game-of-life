@@ -57,9 +57,9 @@ const Context = createContext<Context | null>(null);
 
 /** FIXME: useLayoutEffects are firing twice but that might just be react strict mode */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeColour, setThemeColour] = useState<ThemeColour>('pink');
+  const [themeColour, setThemeColour] = useState<ThemeColour>((localStorage.getItem('themeColour') ?? 'pink') as ThemeColour);
   const [themeDark, setDark] = useState(true);
-  const [themePreference, setThemePreference] = useState(ThemePreference.Dark);
+  const [themePreference, setThemePreference] = useState<ThemePreference>(Number(localStorage.getItem('themePreference') ?? ThemePreference.Dark) as ThemePreference);
   const themeDarkRef = useRef(themeDark);
 
   useLayoutEffect(() => {
@@ -75,6 +75,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const [remove, add] = nextDark ? ['scheme-only-light', 'scheme-only-dark'] : ['scheme-only-dark', 'scheme-only-light'];
       document.body.classList.remove(remove);
       document.body.classList.add(add);
+      localStorage.setItem('themePreference', String(themePreference));
     };
     query.addEventListener('change', update);
     update();
@@ -85,6 +86,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     console.debug('ThemeProvider', { themeColour });
     for (const colour of themeColours.filter((colour) => colour !== themeColour)) document.body.classList.remove(colour);
     document.body.classList.add(themeColour);
+    localStorage.setItem('themeColour', themeColour);
   }, [themeColour]);
 
   const contextValue: Context = useMemo(
