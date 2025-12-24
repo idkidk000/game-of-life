@@ -1,10 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
-@import 'tailwindcss';
+/* `vite-plugin-webfont-dl` fetches and inlines this */
+@import url("https://fonts.googleapis.com/css2?family=Jersey+10&display=swap");
+@import "tailwindcss";
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  font-family: "Jersey 10", sans-serif;
+  /* jersey 10 is very small */
+  font-size-adjust: 0.6;
   color-scheme: light dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -80,17 +81,17 @@
 }
 
 @theme {
-  --font-label: 'Jersey 10', sans-serif;
+  --color-foreground: light-dark(#000, #fff);
+  --color-background: light-dark(#fff, #000);
 }
 
 @theme inline {
-  --color-foreground: light-dark(#000, #fff);
-  --color-background: light-dark(#fff, #000);
   --color-accent: var(--accent);
-  --color-label-1: light-dark(var(--color-yellow-800), var(--color-yellow-200));
-  --color-label-2: light-dark(var(--color-emerald-800), var(--color-emerald-300));
-  --color-label-3: light-dark(var(--color-cyan-800), var(--color-cyan-300));
-  --color-label-4: light-dark(var(--color-indigo-800), var(--color-indigo-300));
+  /* the -300 variants don't look consistent */
+  --color-label-1: light-dark(var(--color-yellow-800), hsl(from var(--color-yellow-300) h 100% 75%));
+  --color-label-2: light-dark(var(--color-emerald-800), hsl(from var(--color-emerald-300) h 100% 75%));
+  --color-label-3: light-dark(var(--color-cyan-800), hsl(from var(--color-cyan-300) h 100% 75%));
+  --color-label-4: light-dark(var(--color-indigo-800), hsl(from var(--color-indigo-300) h 100% 80%));
 }
 
 @layer base {
@@ -98,13 +99,13 @@
     box-sizing: border-box;
   }
   body {
-    @apply bg-background text-foreground accent-accent transition-colors duration-200;
+    @apply bg-background text-foreground accent-accent transition-colors duration-200 uppercase;
   }
   div#root {
     @apply h-dvh;
   }
   button {
-    @apply bg-foreground/20 px-4 py-2 shadow transition-[background-color,color,border-color] duration-200 border-3 border-transparent;
+    @apply bg-foreground/20 px-4 py-2 shadow transition-[background-color,color,border-color] duration-200 border-3 border-transparent flex flex-row gap-2;
     &:not(:disabled) {
       &:hover {
         @apply bg-foreground/15 border-accent/50;
@@ -115,6 +116,10 @@
     }
     &:disabled {
       @apply text-foreground/50;
+    }
+    &:has(> svg),
+    &:has(> img) {
+      @apply h-12 md:h-10;
     }
   }
   .input-group {
@@ -132,7 +137,7 @@
     }
   }
   .control-group {
-    @apply flex flex-wrap gap-4 items-center;
+    @apply flex flex-wrap gap-4 items-center justify-center;
   }
   canvas {
     @apply size-full border-3 border-accent bg-background;
@@ -142,5 +147,49 @@
   }
   menu {
     @apply border-3 border-accent bg-background;
+  }
+  select {
+    @apply uppercase;
+  }
+  /* https://youtube.com/watch?v=AvvXZL3mKhc */
+  input[type="range"] {
+    appearance: unset;
+    -moz-appearance: none;
+    /* selecting based on different browser prefixes, i.e. `&::-moz-range-thumb, &::-webkit-slider-thumb` doesn't work */
+    &::-moz-range-thumb {
+      appearance: none;
+      background-color: var(--color-accent);
+      border-color: var(--color-background);
+      border-radius: 0;
+      border-width: 0.25em;
+      height: 1em;
+      width: 1em;
+    }
+    &::-moz-range-track {
+      appearance: none;
+      background-color: var(--color-accent);
+      height: 0.25em;
+    }
+    -webkit-appearance: none;
+    &::-webkit-slider-thumb {
+      appearance: none;
+      /* borders don't work in chromium */
+      background: linear-gradient(to right, var(--color-background) 20%, var(--color-accent) 20%, var(--color-accent) 80%, var(--color-background) 80%);
+      border-color: var(--color-background);
+      border-radius: 0;
+      border-width: 0.25em;
+      height: 1em;
+      width: 1.5em;
+      /* y position is not centered in chromium */
+      translate: 0 -0.35em;
+    }
+    &::-webkit-slider-runnable-track {
+      appearance: none;
+      background-color: var(--color-accent);
+      height: 0.25em;
+    }
+  }
+  option {
+    @apply bg-background text-foreground;
   }
 }

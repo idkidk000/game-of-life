@@ -11,9 +11,7 @@ export function Select<Value extends string | number>({
   options: { key: Value; label: string }[];
   value: Value;
   onValueChange: (value: Value) => unknown;
-  type: Value extends string ? 'string'
-  : Value extends number ? 'number'
-  : never;
+  type: Value extends string ? 'string' : Value extends number ? 'number' : never;
   title: string;
   label: string;
 }) {

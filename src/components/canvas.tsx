@@ -2,11 +2,11 @@ import { type MouseEvent, type RefObject, useCallback, useEffect, useLayoutEffec
 import { Command, useControls } from '@/hooks/controls';
 import { useSimulation } from '@/hooks/simulation';
 
-export function Canvas({ canvasRef }: { canvasRef: RefObject<HTMLCanvasElement | null> }) {
+export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | null> }) {
   const { controls, controlsRef, commandsRef, setControls } = useControls();
   const { simulationRef } = useSimulation();
 
-  // resize the canvas to fit the element
+  // adjust canvas resolution to fit the element
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   useLayoutEffect(() => {
     if (!canvasRef.current) return;
@@ -93,5 +93,6 @@ export function Canvas({ canvasRef }: { canvasRef: RefObject<HTMLCanvasElement |
     [clientXyToSimXy, setControls]
   );
 
-  return <canvas ref={canvasRef} onMouseMove={handleMouseMove} onClick={handleClick} onContextMenu={handleRightClick} />;
+  // overflow hidden is for chromium jank. the canvas cannot and does not overflow.
+  return <canvas ref={canvasRef} onMouseMove={handleMouseMove} onClick={handleClick} onContextMenu={handleRightClick} className='overflow-hidden' />;
 }

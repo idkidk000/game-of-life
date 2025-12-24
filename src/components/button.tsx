@@ -3,7 +3,6 @@ import type { ButtonHTMLAttributes, ReactNode, RefObject } from 'react';
 export function Button({
   children,
   type = 'button',
-  className = '',
   label,
   ...props
 }: {
@@ -17,10 +16,8 @@ export function Button({
   ref?: RefObject<HTMLButtonElement>;
 }) {
   return (
-    <button type={type} className={`flex flex-row gap-2 ${className}`} {...props}>
-      {label ?
-        <span className='hidden lg:inline'>{label}</span>
-      : null}
+    <button type={type} {...props}>
+      {label ? <span className='hidden lg:inline'>{label}</span> : null}
       {children}
     </button>
   );

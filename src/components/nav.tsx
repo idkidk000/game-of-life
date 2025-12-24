@@ -12,9 +12,9 @@ import {
   Next,
   Pause,
   Play,
-  Sliders2,
   SunAlt,
   Trash,
+  Undo,
   UserMinus,
   UserPlus,
   ViewportNarrow,
@@ -75,9 +75,7 @@ export function Nav() {
   const handleThemeClick = useCallback(
     () =>
       setThemePreference((prev) =>
-        prev === ThemePreference.Auto ? ThemePreference.Dark
-        : prev === ThemePreference.Dark ? ThemePreference.Light
-        : ThemePreference.Auto
+        prev === ThemePreference.Auto ? ThemePreference.Dark : prev === ThemePreference.Dark ? ThemePreference.Light : ThemePreference.Auto
       ),
     [setThemePreference]
   );
@@ -135,7 +133,7 @@ export function Nav() {
 
   useEffect(() => {
     const shortcuts = new Map<string, () => unknown>([
-      [' ', handlePausedClick],
+      ['enter', handlePausedClick],
       ['-', () => setControls((prev) => ({ ...prev, speed: Math.max(prev.speed - 1, 1) }))],
       ['.', handleStepClick],
       ['*', handleSeedClick],
@@ -239,27 +237,6 @@ export function Nav() {
               />
             </section>
             <Rules onValueChange={handleRulesChange} values={controls.rules} />
-            <Button onClick={handleDumpClick} title='Dump to console'>
-              <Bug />
-            </Button>
-            <Button onClick={handleBloomClick} title='Bloom filter' className={controls.bloom ? 'bg-accent' : ''}>
-              <LightbulbOn />
-            </Button>
-            <Button
-              onClick={handleThemeClick}
-              title={
-                themePreference === ThemePreference.Dark ? 'Dark'
-                : themePreference === ThemePreference.Light ?
-                  'Light'
-                : 'System'
-              }
-            >
-              {themePreference === ThemePreference.Dark ?
-                <Moon />
-              : themePreference === ThemePreference.Light ?
-                <SunAlt />
-              : <Monitor />}
-            </Button>
             <Select
               label='Colour'
               onValueChange={handleThemeColourChange}
@@ -271,6 +248,12 @@ export function Nav() {
               type='string'
               value={themeColour}
             />
+            <Button
+              onClick={handleThemeClick}
+              title={themePreference === ThemePreference.Dark ? 'Dark' : themePreference === ThemePreference.Light ? 'Light' : 'System'}
+            >
+              {themePreference === ThemePreference.Dark ? <Moon /> : themePreference === ThemePreference.Light ? <SunAlt /> : <Monitor />}
+            </Button>
             <Select
               label='Renderer'
               onValueChange={handleRendererChange}
@@ -281,13 +264,25 @@ export function Nav() {
               type='number'
               value={controls.renderer}
             />
+            <Button onClick={handleBloomClick} title='Bloom filter' className={controls.bloom ? 'bg-accent' : ''}>
+              <LightbulbOn />
+            </Button>
+            <Button onClick={handleDumpClick} title='Dump to console'>
+              <Bug />
+            </Button>
+            <Button
+              type='reset'
+              onClick={handleResetClick}
+              disabled={objectIsEqual(omit(controlDefaults, ['paused']), omit(controls, ['paused']))}
+              title='Reset controls'
+            >
+              <Undo />
+            </Button>
           </div>
         </MenuContent>
       </Menu>
-      <Button onClick={handlePausedClick} title={controls.paused ? 'Paused' : 'Running'} className={controls.paused ? undefined : 'bg-accent'}>
-        {controls.paused ?
-          <Pause />
-        : <Play />}
+      <Button onClick={handlePausedClick} title={controls.paused ? 'Paused' : 'Running'} className={controls.paused ? 'animate-pulse' : 'bg-accent'}>
+        {controls.paused ? <Pause /> : <Play />}
       </Button>
       <Button onClick={handleStepClick} title='Single step'>
         <Next />
@@ -313,18 +308,8 @@ export function Nav() {
           </div>
         </MenuContent>
       </Menu>
-      <Button
-        type='reset'
-        onClick={handleResetClick}
-        disabled={objectIsEqual(omit(controlDefaults, ['paused']), omit(controls, ['paused']))}
-        title='Reset controls'
-      >
-        <Sliders2 />
-      </Button>
       <Button title={fullScreen ? 'Minimise' : 'Full screen'} onClick={handleFullScreenClick} className={fullScreen ? 'bg-accent' : undefined}>
-        {fullScreen ?
-          <ViewportNarrow />
-        : <ViewportWide />}
+        {fullScreen ? <ViewportNarrow /> : <ViewportWide />}
       </Button>
       <Button title='Save image' onClick={handleSaveClick}>
         <Camera />

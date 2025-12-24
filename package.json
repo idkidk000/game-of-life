@@ -15,8 +15,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "globals": "^16.5.0",
-    "pixelarticons": "^1.8.1",
-    "prettier": "^3.7.4",
+    "pixelarticons": "1.8.1",
     "typescript": "~5.9.3",
     "vite": "^7.2.4"
   },
@@ -25,9 +24,10 @@
   "scripts": {
     "build": "tsc -b && vite build",
     "dev": "vite --port 3000 --host 0.0.0.0",
-    "format": "prettier . --write",
+    "format": "biome format --write",
     "icons": "npx tsx scripts/fix-pixelarticons.ts",
     "lint": "biome lint --reporter=summary",
+    "organise": "biome check --formatter-enabled=false --linter-enabled=false --reporter=summary",
     "start": "vite preview --port 3000  --host 0.0.0.0",
     "tidy": "npm run lint && npm run format"
   },

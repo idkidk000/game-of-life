@@ -70,13 +70,7 @@ export class Simulation {
   }
   #xyToIndex(x: number, y: number): number {
     return (
-      (y < 0 ? this.#height + y
-      : y >= this.#height ? this.#height - y
-      : y)
-        * this.#width
-      + (x < 0 ? this.#width + x
-      : x >= this.#width ? this.#width - x
-      : x)
+      (y < 0 ? this.#height + y : y >= this.#height ? this.#height - y : y) * this.#width + (x < 0 ? this.#width + x : x >= this.#width ? this.#width - x : x)
     );
   }
   updateRules({ born, survive }: SimRules) {

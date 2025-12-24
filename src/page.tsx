@@ -8,11 +8,7 @@ export default function Page() {
   return (
     <div className='flex flex-col size-full items-center justify-center'>
       <Nav />
-      {controls.renderer === Renderer.Canvas2d ?
-        <Renderer2d />
-      : controls.renderer === Renderer.Regl ?
-        <RendererRegl />
-      : null}
+      {controls.renderer === Renderer.Canvas2d ? <Renderer2d /> : controls.renderer === Renderer.Regl ? <RendererRegl /> : null}
     </div>
   );
 }

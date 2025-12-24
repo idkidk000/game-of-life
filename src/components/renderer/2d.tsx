@@ -71,7 +71,7 @@ export function Renderer2d() {
       context.fillStyle = `hsl(0 0% ${themeDarkRef.current ? '0' : '100'}% / 70%)`;
       const labels = [
         { text: `Step ${simulationRef.current.steps.toLocaleString()}`, hue: 50 },
-        { text: `${stepTime.toFixed(1)} ms`, hue: 150 },
+        { text: `${Number.isNaN(stepTime) ? '- ' : stepTime.toFixed(1)} ms`, hue: 150 },
         { text: `${frameRate.toFixed(1)} fps`, hue: 200 },
         { text: `${simulationRef.current.alive.toLocaleString()} alive`, hue: 250 },
       ].map((item) => {
@@ -83,10 +83,7 @@ export function Renderer2d() {
       // the magic numbers are 50px line height (font size is 30px) so 10px above and below
       // fillText origin is bottom left
       const maxWidth = labels.reduce((acc, item) => Math.max(acc, item.width), 0);
-      const [columns, rows] =
-        maxWidth < canvasRef.current.width / 4 ? [4, 1]
-        : maxWidth < canvasRef.current.width / 2 ? [2, 2]
-        : [1, 4];
+      const [columns, rows] = maxWidth < canvasRef.current.width / 4 ? [4, 1] : maxWidth < canvasRef.current.width / 2 ? [2, 2] : [1, 4];
       context.fillRect(0, canvasRef.current.height - rows * 50, canvasRef.current.width, rows * 50);
       for (const [l, label] of labels.entries()) {
         context.fillStyle = `hsl(${label.hue} 80% ${lightness})`;
@@ -105,5 +102,5 @@ export function Renderer2d() {
     return () => controller.abort();
   }, []);
 
-  return <Canvas canvasRef={canvasRef} />;
+  return <Canvas ref={canvasRef} />;
 }

@@ -31,7 +31,7 @@ export function Range({
     <span className='input-group' title={title}>
       <label htmlFor={id}>{label}</label>
       <input id={id} type='range' min={min} max={max} step={step} onChange={handleChange} value={value} disabled={disabled} />
-      <pre>{`${value.toFixed(decimals)}${unit}`}</pre>
+      <span>{`${value.toFixed(decimals)}${unit}`}</span>
     </span>
   );
 }

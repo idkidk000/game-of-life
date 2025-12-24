@@ -161,7 +161,7 @@ export function RendererRegl() {
       if (!labelsRef.current) return;
       // FIXME: this is not very clever. render to a 2d canvas every n frames and push to regl as a texture
       (labelsRef.current.children[0] as HTMLSpanElement).innerText = `Step ${steps.toLocaleString()}`;
-      (labelsRef.current.children[1] as HTMLSpanElement).innerText = `${stepTime.toFixed(1)} ms`;
+      (labelsRef.current.children[1] as HTMLSpanElement).innerText = `${Number.isNaN(stepTime) ? '- ' : stepTime.toFixed(1)} ms`;
       (labelsRef.current.children[2] as HTMLSpanElement).innerText = `${frameRate.toFixed(1)} fps`;
       (labelsRef.current.children[3] as HTMLSpanElement).innerText = `${alive.toLocaleString()} alive`;
     });
@@ -171,13 +171,13 @@ export function RendererRegl() {
 
   return (
     <>
-      <Canvas canvasRef={canvasRef} />
+      <Canvas ref={canvasRef} />
       <div className='fixed bottom-0 left-0 right-0 p-4 m-1 bg-background/70'>
-        <div className='grid grid-cols-[repeat(auto-fit,minmax(8ch,1fr))] gap-4 text-5xl font-medium text-center max-w-6xl mx-auto' ref={labelsRef}>
-          <span className='text-label-1 font-label' />
-          <span className='text-label-2 font-label' />
-          <span className='text-label-3 font-label' />
-          <span className='text-label-4 font-label' />
+        <div className='grid grid-cols-[repeat(auto-fit,minmax(8ch,1fr))] gap-4 text-4xl font-medium text-center max-w-6xl mx-auto' ref={labelsRef}>
+          <span className='text-label-1' />
+          <span className='text-label-2' />
+          <span className='text-label-3' />
+          <span className='text-label-4' />
         </div>
       </div>
     </>

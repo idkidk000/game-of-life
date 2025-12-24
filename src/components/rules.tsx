@@ -59,7 +59,7 @@ export function Rules({ values, onValueChange }: { values: SimRules; onValueChan
     <div className='control-group'>
       <Rule label='Born' onValueChange={handleBornChange} title='Cell is born when this many live neighbours' value={values.born} />
       <Rule label='Survive' onValueChange={handleSurviveChange} title='Cell survives when this many live neighbours' value={values.survive} />
-      <pre>{`B${values.born.toSorted().join('')}/S${values.survive.toSorted().join('')}`}</pre>
+      <span>{`B${values.born.toSorted().join('')}/S${values.survive.toSorted().join('')}`}</span>
       <Button title='Randomise' onClick={handleRandomiseClick}>
         <Dice />
       </Button>

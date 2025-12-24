@@ -110,11 +110,10 @@ export function MenuTrigger({ children, className, ...props }: Omit<ComponentPro
 
 export function MenuContent({
   children,
-  className = 'starting:opacity-0 starting:scale-95 starting:-translate-y-[25dvh] origin-center duration-200 ease-in transition-[opacity,scale,translate] z-10',
+  className = 'starting:opacity-0 starting:scale-95 starting:-translate-y-[25dvh] origin-center duration-200 ease-in transition-[opacity,scale,translate] z-10 mx-4 mb-4 overflow-y-auto',
   classNameClosed = 'hidden',
   classNameClosing = 'scale-95 opacity-0 translate-y-[25dvh]',
   classNameOpen = 'scale-100 opacity-100 translate-y-0',
-  offset = '1em',
   width = 'full',
 }: {
   children: ReactNode;
@@ -122,7 +121,6 @@ export function MenuContent({
   classNameClosed?: string;
   classNameClosing?: string;
   classNameOpen?: string;
-  offset?: string;
   width?: 'full' | 'auto';
 }) {
   const { state, menuRef, triggerRef } = useMenu();
@@ -135,24 +133,24 @@ export function MenuContent({
       if (!menuRef.current) return;
       const triggerRect = triggerRef.current?.getBoundingClientRect();
       if (!triggerRect) return;
-      menuRef.current.style.top = `calc(${triggerRect.bottom}px + ${offset})`;
+      menuRef.current.style.top = `calc(${triggerRect.bottom}px + 1em)`;
+      // offset and bottom padding
+      menuRef.current.style.maxHeight = `calc(100dvh - ${triggerRect.bottom}px - 2em)`;
       if (width === 'auto') {
         menuRef.current.style.translate = '-100%';
-        menuRef.current.style.left = `calc(${triggerRect.right}px + ${offset})`;
+        menuRef.current.style.left = `calc(${triggerRect.right}px + 1em)`;
       }
     };
     const observer = new ResizeObserver(update);
     observer.observe(document.documentElement);
     update();
     return () => observer.disconnect();
-  }, [width, offset]);
+  }, [width]);
 
   return (
     <menu
       className={`fixed ${width === 'full' ? 'left-0 right-0' : ''} ${className} ${
-        state === MenuState.Closed ? classNameClosed
-        : state === MenuState.Closing ? classNameClosing
-        : classNameOpen
+        state === MenuState.Closed ? classNameClosed : state === MenuState.Closing ? classNameClosing : classNameOpen
       }`}
       ref={menuRef}
     >
