@@ -3,7 +3,7 @@ import { defaultSimObjects, SimObject, type SimObjectLike } from '@/lib/sim-obje
 
 interface Context {
   simObjects: SimObjectLike[];
-  addSimObject: (rle: string) => unknown;
+  addSimObject: (object: SimObjectLike) => unknown;
   removeSimObject: (id: string) => unknown;
   activeSimObject: SimObjectLike | null;
   setActiveSimObject: Dispatch<SetStateAction<SimObjectLike | null>>;
@@ -37,9 +37,13 @@ export function SimObjectProvider({ children }: { children: ReactNode }) {
     activeSimObjectRef,
     setActiveSimObject,
     simObjects,
-    addSimObject(rle) {
+    addSimObject(object) {
+      const json = object instanceof SimObject ? object.toJSON() : object;
+      // with such a small number of items, a map would be less efficient
+      const existing = simObjects.find((item) => item.id === json.id);
+      if (existing) throw new Error(`duplicate of ${existing.name ?? existing.comment ?? existing.id}`);
       setSimObjects((prev) => {
-        const next = [...prev, new SimObject(rle)];
+        const next = [...prev, json];
         writeLocalStorage(next);
         return next;
       });

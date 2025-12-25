@@ -11,6 +11,31 @@ export interface SimObjectLike {
   id: string;
 }
 
+// there are no clientside synchronous hashing apis
+function hash(pattern: string): string {
+  const length = 18;
+  // map 0-9ob$ to 0-9a-c and split into pairs
+  const replaced = pattern
+    .replaceAll('o', 'a')
+    .replaceAll('$', 'c')
+    .split(/(..?)/g)
+    .filter((item) => item.length);
+  const u8 = new Uint8Array(replaced.length);
+  let i = 0;
+  // fill them into a u8 array
+  for (const pair of replaced) u8[i++] = parseInt(pair, 16);
+  // mult by an odd number and xor backwards until we're < length (very bad, but hopefully not bad enough to be a problem)
+  while (i >= length) {
+    u8[Math.floor(i - length)] ^= u8[i] * (Math.ceil(i / length / 2) * 2) + 1;
+    i--;
+  }
+  // @ts-expect-error it does on the client
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toBase64
+  const hashed: string = u8.subarray(0, length).toBase64();
+  console.debug({ pattern, hashed });
+  return hashed;
+}
+
 export class SimObject implements SimObjectLike {
   #width: number;
   #height: number;
@@ -68,8 +93,7 @@ export class SimObject implements SimObjectLike {
       this.#name = nameMatch?.groups?.name;
       this.#points = points;
       this.#width = maxX - minX;
-      // crypto.randomUUID would be better but it's only available in secure contexts for absolutely no useful reason
-      this.#id = `${this.#name ?? 'unkown'}-${Date.now() % Math.round(Math.random() * 10_000)}`;
+      this.#id = hash(pattern);
     } else {
       this.#comment = param.comment;
       this.#height = param.height;
@@ -113,4 +137,4 @@ export const defaultSimObjects = rles
   .replaceAll(/^\/\/.*$/gm, '')
   .split('\n\n')
   .filter((item) => item.trim().length)
-  .map((rle) => new SimObject(rle));
+  .map((rle) => new SimObject(rle).toJSON());

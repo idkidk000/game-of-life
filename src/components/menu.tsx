@@ -1,6 +1,6 @@
-import type { ComponentProps, Dispatch, ReactNode, SetStateAction } from 'react';
+import type { ReactNode } from 'react';
 import { createContext, type RefObject, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Button } from '@/components/button';
+import { createPortal } from 'react-dom';
 
 enum MenuState {
   Closed,
@@ -8,124 +8,116 @@ enum MenuState {
   Closing,
 }
 
-export enum MenuClickToClose {
-  Inside,
-  Outside,
-  Both,
-  None,
-}
-
 interface Context {
   state: MenuState;
-  setState: Dispatch<SetStateAction<MenuState>>;
-  triggerRef: RefObject<HTMLButtonElement | null>;
+  triggerRef: RefObject<HTMLSpanElement | null>;
   menuRef: RefObject<HTMLMenuElement | null>;
   stateRef: RefObject<MenuState>;
-  closingMillis: number;
+  setClosed: () => void;
+  setOpen: () => void;
+  toggleOpen: () => void;
 }
 
 const Context = createContext<Context | null>(null);
 
-/** `node.contains` doesn't work on svgs so additionally match by client rect */
-function elemContains(elem: HTMLElement, event: PointerEvent): boolean {
-  if (elem === event.target || elem.contains(event.target as Node)) return true;
-  const rect = elem.getBoundingClientRect();
-  return event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
-}
-
-/** context provider. requires `MenuTrigger` and `MenuContent` children */
-export function Menu({
-  children,
-  closingMillis = 300,
-  clickToClose = MenuClickToClose.Outside,
-}: {
-  children: ReactNode;
-  closingMillis?: number;
-  clickToClose?: MenuClickToClose;
-}) {
+/** context provider.\
+ * requires `MenuTrigger` and `MenuContent` children.
+ *
+ * wrap `MenuClose` around relevant elements and/or use `setOpen`, `setClosed`, and `toggleOpen` methods exposed through the `useMenu` hook */
+export function Menu({ children, closingMillis = 300 }: { children: ReactNode; closingMillis?: number }) {
   const [state, setState] = useState<MenuState>(MenuState.Closed);
   const menuRef = useRef<HTMLMenuElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLSpanElement>(null);
   const stateRef = useRef(state);
 
-  // update state into stateRef
   useEffect(() => {
+    // update state into stateRef
     stateRef.current = state;
+    // toggle open attrib for styling
+    triggerRef.current?.toggleAttribute('open', state === MenuState.Open);
   }, [state]);
 
-  // click to close
-  useEffect(() => {
-    if (clickToClose === MenuClickToClose.None) return;
-    const controller = new AbortController();
-    document.addEventListener(
-      'click',
-      (event) => {
-        if (stateRef.current !== MenuState.Open) return;
-        if (!triggerRef.current || !menuRef.current) return;
-        if (elemContains(triggerRef.current, event)) return;
-        if (clickToClose === MenuClickToClose.Inside && !elemContains(menuRef.current, event)) return;
-        if (clickToClose === MenuClickToClose.Outside && elemContains(menuRef.current, event)) return;
-        setState(MenuState.Closing);
-        setTimeout(() => setState(MenuState.Closed), closingMillis);
-      },
-      { signal: controller.signal }
-    );
-    return () => controller.abort();
-  }, [closingMillis, clickToClose]);
+  const setClosed = useCallback(() => {
+    if (stateRef.current === MenuState.Open) {
+      setState(MenuState.Closing);
+      setTimeout(() => setState(MenuState.Closed), closingMillis);
+    }
+  }, [closingMillis]);
 
-  const contextValue: Context = useMemo(() => ({ triggerRef, setState, state, stateRef, closingMillis, menuRef }), [closingMillis, state]);
+  const setOpen = useCallback(() => {
+    if (stateRef.current === MenuState.Closed) setState(MenuState.Open);
+  }, []);
 
-  return <Context value={contextValue}>{children}</Context>;
+  const toggleOpen = useCallback(() => {
+    if (stateRef.current === MenuState.Open) {
+      setState(MenuState.Closing);
+      setTimeout(() => setState(MenuState.Closed), closingMillis);
+    } else if (stateRef.current === MenuState.Closed) setState(MenuState.Open);
+  }, [closingMillis]);
+
+  // biome-ignore format: do not
+  const value: Context = useMemo(() => ({
+    triggerRef,
+    state,
+    stateRef,
+    menuRef,
+    setClosed,
+    setOpen,
+    toggleOpen
+  }), [state, setClosed, setOpen, toggleOpen]);
+
+  return <Context value={value}>{children}</Context>;
 }
 
-function useMenu() {
+export function useMenu() {
   const context = useContext(Context);
   if (context === null) throw new Error('useMenu must be used underneath a Menu component');
   return context;
 }
 
-export function MenuTrigger({ children, className, ...props }: Omit<ComponentProps<typeof Button>, 'ref' | 'onClick'>) {
-  const { triggerRef, state, stateRef, setState, closingMillis } = useMenu();
+export function MenuTrigger({ children }: { children: ReactNode }) {
+  const { toggleOpen, triggerRef } = useMenu();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  const handleClick = useCallback(() => {
-    if (stateRef.current === MenuState.Closed) setState(MenuState.Open);
-    else if (stateRef.current === MenuState.Open) {
-      setState(MenuState.Closing);
-      setTimeout(() => setState(MenuState.Closed), closingMillis);
-    }
-  }, [setState]);
+  useEffect(() => {
+    const controller = new AbortController();
+    triggerRef.current?.addEventListener('click', toggleOpen, { signal: controller.signal });
+    return () => controller.abort();
+  }, [toggleOpen]);
 
-  return (
-    <Button
-      ref={triggerRef as RefObject<HTMLButtonElement>}
-      onClick={handleClick}
-      className={`${state === MenuState.Open ? 'bg-accent' : ''} ${className ?? ''}`}
-      {...props}
-    >
-      {children}
-    </Button>
-  );
+  return <span ref={triggerRef}>{children}</span>;
 }
 
+export function MenuClose({ children }: { children: ReactNode }) {
+  const { setClosed } = useMenu();
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const controller = new AbortController();
+    ref.current.addEventListener('click', setClosed, { signal: controller.signal });
+    return () => controller.abort();
+  }, [setClosed]);
+
+  return <span ref={ref}>{children}</span>;
+}
+
+// closing styling on popovers is still jank in firefox
 export function MenuContent({
   children,
-  className = 'starting:opacity-0 starting:scale-95 starting:-translate-y-[25dvh] origin-center duration-200 ease-in transition-[opacity,scale,translate] z-10 mx-4 mb-4 overflow-y-auto',
-  classNameClosed = 'hidden',
+  className = 'starting:opacity-0 starting:scale-95 starting:-translate-y-[25dvh] origin-center duration-200 ease-in transition-[opacity,scale,translate] mx-4 mb-4 overflow-y-auto',
   classNameClosing = 'scale-95 opacity-0 translate-y-[25dvh]',
-  classNameOpen = 'scale-100 opacity-100 translate-y-0',
   width = 'full',
 }: {
   children: ReactNode;
   className?: string;
-  classNameClosed?: string;
   classNameClosing?: string;
-  classNameOpen?: string;
   width?: 'full' | 'auto';
 }) {
-  const { state, menuRef, triggerRef } = useMenu();
+  const { state, menuRef, triggerRef, setClosed } = useMenu();
+  const ref = useRef<HTMLDivElement>(null);
 
-  // update position styles on document resize without forcing a re-render
+  // update position styles on document resize
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref objects
   useLayoutEffect(() => {
     // mozilla pls https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/anchor
@@ -138,7 +130,7 @@ export function MenuContent({
       menuRef.current.style.maxHeight = `calc(100dvh - ${triggerRect.bottom}px - 2em)`;
       if (width === 'auto') {
         menuRef.current.style.translate = '-100%';
-        menuRef.current.style.left = `calc(${triggerRect.right}px + 1em)`;
+        menuRef.current.style.left = `${triggerRect.right}px`;
       }
     };
     const observer = new ResizeObserver(update);
@@ -147,14 +139,28 @@ export function MenuContent({
     return () => observer.disconnect();
   }, [width]);
 
-  return (
-    <menu
-      className={`fixed ${width === 'full' ? 'left-0 right-0' : ''} ${className} ${
-        state === MenuState.Closed ? classNameClosed : state === MenuState.Closing ? classNameClosing : classNameOpen
-      }`}
-      ref={menuRef}
+  useEffect(() => {
+    if (state === MenuState.Open) ref.current?.showPopover();
+    if (state === MenuState.Closed) ref.current?.hidePopover();
+  }, [state]);
+
+  useEffect(() => {
+    // outer onClick includes children
+    ref.current?.addEventListener('click', (event) => {
+      if (event.target === ref.current) setClosed();
+    });
+  }, [setClosed]);
+
+  return createPortal(
+    <div
+      popover='manual'
+      ref={ref}
+      className={`size-full transition-[background] duration-200 starting:bg-transparent ${state === MenuState.Open ? 'bg-background/50' : state === MenuState.Closing ? 'bg-transparent' : 'hidden'}`}
     >
-      {children}
-    </menu>
+      <menu className={`fixed ${width === 'full' ? 'left-0 right-0' : ''} ${className} ${state === MenuState.Closing ? classNameClosing : ''}`} ref={menuRef}>
+        {children}
+      </menu>
+    </div>,
+    document.body
   );
 }

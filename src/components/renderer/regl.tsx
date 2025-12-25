@@ -20,7 +20,7 @@ export function RendererRegl() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { controlsRef } = useControls();
   const { simulationRef, stepTimesRef } = useSimulation();
-  const { themeDarkRef } = useTheme();
+  const { themeDarkRef, themeRef } = useTheme();
   const labelsRef = useRef<HTMLDivElement>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref objects
@@ -119,7 +119,7 @@ export function RendererRegl() {
       // fill the typed arrays with sim data
       let i = 0;
       for (const [x, y, age, neighbours] of simulationRef.current.values()) {
-        const [r, g, b] = convert.hsl.rgb(age, (100 / 3) * Math.min(3, neighbours), themeDarkRef.current ? 70 : 30);
+        const [r, g, b] = convert.hsl.rgb(age + themeRef.current.hue, (100 / 3) * Math.min(3, neighbours), themeDarkRef.current ? 70 : 30);
         colourArray[i * 3 + 0] = r;
         colourArray[i * 3 + 1] = g;
         colourArray[i * 3 + 2] = b;

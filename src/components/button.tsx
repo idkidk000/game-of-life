@@ -9,7 +9,7 @@ export function Button({
 }: {
   children: ReactNode;
   title?: string;
-  onClick: () => unknown;
+  onClick?: () => unknown;
   disabled?: boolean;
   type?: ButtonHTMLAttributes<HTMLButtonElement>['type'];
   className?: string;

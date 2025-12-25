@@ -7,7 +7,7 @@ import { SlidingWindow } from '@/lib/sliding-window';
 
 export function Renderer2d() {
   const { commandsRef, controlsRef } = useControls();
-  const { themeDarkRef } = useTheme();
+  const { themeDarkRef, themeRef } = useTheme();
   const { simulationRef, stepTimesRef } = useSimulation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -37,14 +37,14 @@ export function Renderer2d() {
         for (const [x, y, age, neighbours] of simulationRef.current.values()) {
           const canvasX = Math.round((x - 1) / controlsRef.current.scale);
           const canvasY = Math.round((y - 1) / controlsRef.current.scale);
-          context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness} / 10%)`;
+          context.fillStyle = `hsl(${age + themeRef.current.hue} ${Math.min(neighbours, 3) * 33}% ${lightness} / 10%)`;
           context.fillRect(canvasX, canvasY, first, first);
         }
         const second = Math.ceil((1 / controlsRef.current.scale) * 2);
         for (const [x, y, age, neighbours] of simulationRef.current.values()) {
           const canvasX = Math.round((x - 0.5) / controlsRef.current.scale);
           const canvasY = Math.round((y - 0.5) / controlsRef.current.scale);
-          context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness} / 20%)`;
+          context.fillStyle = `hsl(${age + themeRef.current.hue} ${Math.min(neighbours, 3) * 33}% ${lightness} / 20%)`;
           context.fillRect(canvasX, canvasY, second, second);
         }
       }
@@ -54,7 +54,7 @@ export function Renderer2d() {
       for (const [x, y, age, neighbours] of simulationRef.current.values()) {
         const canvasX = Math.round(x / controlsRef.current.scale);
         const canvasY = Math.round(y / controlsRef.current.scale);
-        context.fillStyle = `hsl(${age} ${Math.min(neighbours, 3) * 33}% ${lightness})`;
+        context.fillStyle = `hsl(${age + themeRef.current.hue} ${Math.min(neighbours, 3) * 33}% ${lightness})`;
         context.fillRect(canvasX, canvasY, pixel, pixel);
       }
 

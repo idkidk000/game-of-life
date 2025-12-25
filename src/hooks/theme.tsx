@@ -5,6 +5,7 @@ import {
   type RefObject,
   type SetStateAction,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -44,31 +45,50 @@ export const themeColours = [
 
 export type ThemeColour = (typeof themeColours)[number];
 
+interface Theme {
+  preference: ThemePreference;
+  colour: ThemeColour;
+  hue: number;
+}
+
+const defaultTheme: Theme = {
+  colour: 'indigo',
+  hue: 180,
+  preference: ThemePreference.Dark,
+};
+
 interface Context {
-  themePreference: ThemePreference;
-  setThemePreference: Dispatch<SetStateAction<ThemePreference>>;
+  theme: Theme;
+  setTheme: Dispatch<SetStateAction<Theme>>;
+  themeRef: RefObject<Theme>;
   themeDark: boolean;
   themeDarkRef: RefObject<boolean>;
-  themeColour: ThemeColour;
-  setThemeColour: Dispatch<SetStateAction<ThemeColour>>;
 }
 
 const Context = createContext<Context | null>(null);
 
+function readLocalStorage(): Theme | null {
+  const value = localStorage.getItem('theme');
+  if (!value) return null;
+  return JSON.parse(value) as Theme;
+}
+
+function writeLocalStorage(theme: Theme): void {
+  localStorage.setItem('theme', JSON.stringify(theme));
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeColour, setThemeColour] = useState<ThemeColour>((localStorage.getItem('themeColour') ?? 'indigo') as ThemeColour);
+  const [theme, setTheme] = useState<Theme>({ ...defaultTheme, ...readLocalStorage() });
   const [themeDark, setDark] = useState(true);
-  const [themePreference, setThemePreference] = useState<ThemePreference>(
-    Number(localStorage.getItem('themePreference') ?? ThemePreference.Dark) as ThemePreference
-  );
+  const themeRef = useRef(theme);
   const themeDarkRef = useRef(themeDark);
 
   useLayoutEffect(() => {
     const query = window.matchMedia('(prefers-color-scheme: dark)');
     const controller = new AbortController();
     const update = () => {
-      const nextDark = (themePreference === ThemePreference.Auto && query.matches) || themePreference === ThemePreference.Dark;
-      console.debug('ThemeProvider', { themePreference, matches: query.matches, nextDark });
+      const nextDark = (theme.preference === ThemePreference.Auto && query.matches) || theme.preference === ThemePreference.Dark;
+      console.debug('ThemeProvider', { preference: theme.preference, matches: query.matches, nextDark });
       if (nextDark !== themeDarkRef.current) {
         setDark(nextDark);
         themeDarkRef.current = nextDark;
@@ -76,24 +96,31 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const [remove, add] = nextDark ? ['scheme-only-light', 'scheme-only-dark'] : ['scheme-only-dark', 'scheme-only-light'];
       document.body.classList.remove(remove);
       document.body.classList.add(add);
-      localStorage.setItem('themePreference', String(themePreference));
     };
-    query.addEventListener('change', update);
+    query.addEventListener('change', update, { signal: controller.signal });
     update();
     return () => controller.abort();
-  }, [themePreference]);
+  }, [theme.preference]);
 
   useLayoutEffect(() => {
-    console.debug('ThemeProvider', { themeColour });
-    document.body.classList.remove(...themeColours.filter((colour) => colour !== themeColour));
-    document.body.classList.add(themeColour);
-    localStorage.setItem('themeColour', themeColour);
-  }, [themeColour]);
+    console.debug('ThemeProvider', { colour: theme.colour });
+    document.body.classList.remove(...themeColours.filter((colour) => colour !== theme.colour));
+    document.body.classList.add(theme.colour);
+  }, [theme.colour]);
 
-  const contextValue: Context = useMemo(
-    () => ({ themeDark, themeDarkRef, themePreference, setThemePreference, themeColour, setThemeColour }),
-    [themeDark, themePreference, themeColour]
-  );
+  useEffect(() => {
+    themeRef.current = theme;
+    writeLocalStorage(theme);
+  }, [theme]);
+
+  // biome-ignore format: do not
+  const contextValue: Context = useMemo(() => ({
+    setTheme,
+    theme,
+    themeDark,
+    themeDarkRef,
+    themeRef
+  }), [theme, themeDark]);
 
   return <Context value={contextValue}>{children}</Context>;
 }
