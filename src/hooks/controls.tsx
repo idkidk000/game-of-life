@@ -1,11 +1,13 @@
 import { createContext, type Dispatch, type ReactNode, type RefObject, type SetStateAction, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { EventEmitter } from '@/lib/event-emitter';
 import { defaultSimRules, defaultSimSpawn, type SimRules, type SimSpawn } from '@/lib/simulation';
+import { omit } from '@/lib/utils';
 
 export enum Renderer {
   Canvas2d,
   Regl,
 }
+
 export interface Controls {
   bloom: boolean;
   paused: boolean;
@@ -40,14 +42,14 @@ interface Context {
 
 const Context = createContext<Context | null>(null);
 
-function getStoredValue(): Controls | null {
+function getStoredValue() {
   const value = localStorage.getItem('controls');
   if (!value) return null;
-  return JSON.parse(value) as Controls;
+  return omit(JSON.parse(value) as Controls, ['paused']);
 }
 
 export function ControlsProvider({ children }: { readonly children: ReactNode }) {
-  const [controls, setControls] = useState<Controls>(getStoredValue() ?? controlDefaults);
+  const [controls, setControls] = useState<Controls>({ ...controlDefaults, ...getStoredValue() });
   const controlsRef = useRef<Controls>(controls);
   const commandsRef = useRef(new EventEmitter<Command>());
 

@@ -1,3 +1,5 @@
+import type { SimObjectLike } from '@/lib/sim-object';
+
 export type SimRule = (0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8)[];
 
 export interface SimRules {
@@ -66,12 +68,27 @@ export class Simulation {
     return this.#alive;
   }
   #indexToXy(index: number): [x: number, y: number] {
-    return [index % this.#width, Math.floor(index / this.#width)];
+    const y = Math.floor(index / this.#width);
+    const x = index - y * this.#width;
+    return [x, y];
   }
   #xyToIndex(x: number, y: number): number {
     return (
       (y < 0 ? this.#height + y : y >= this.#height ? this.#height - y : y) * this.#width + (x < 0 ? this.#width + x : x >= this.#width ? this.#width - x : x)
     );
+  }
+  #updateNeighbours(array: Uint16Array, index: number, value: 1 | -1): void;
+  #updateNeighbours(array: Uint16Array, point: [x: number, y: number], value: 1 | -1): void;
+  #updateNeighbours(array: Uint16Array, param: number | [x: number, y: number], value: 1 | -1) {
+    const [x, y] = typeof param === 'number' ? this.#indexToXy(param) : param;
+    array[this.#xyToIndex(x + 0, y + 1)] += value;
+    array[this.#xyToIndex(x + 1, y + 1)] += value;
+    array[this.#xyToIndex(x + 1, y + 0)] += value;
+    array[this.#xyToIndex(x + 1, y - 1)] += value;
+    array[this.#xyToIndex(x + 0, y - 1)] += value;
+    array[this.#xyToIndex(x - 1, y - 1)] += value;
+    array[this.#xyToIndex(x - 1, y + 0)] += value;
+    array[this.#xyToIndex(x - 1, y + 1)] += value;
   }
   updateRules({ born, survive }: SimRules) {
     this.#born = (born as number[]).reduce((acc, item) => acc | (1 << item), 0);
@@ -91,8 +108,7 @@ export class Simulation {
       const prevX = Math.round((resizedX / width) * this.#width);
       const prevY = Math.round((resizedY / height) * this.#height);
       const prevIndex = this.#xyToIndex(prevX, prevY);
-      const value = this.#current[prevIndex];
-      resized[i] = value;
+      resized[i] = this.#current[prevIndex];
     }
     this.#width = width;
     this.#height = height;
@@ -147,16 +163,24 @@ export class Simulation {
       if ((type === SimPrune.Youngest && age > threshold) || (type === SimPrune.Oldest && age < threshold)) continue;
       // clear age
       this.#current[i] = this.#current[i] & 0xf;
-      const [x, y] = this.#indexToXy(i);
       // remove from neighbour's neighbour counts
-      --this.#current[this.#xyToIndex(x + 0, y + 1)];
-      --this.#current[this.#xyToIndex(x + 1, y + 1)];
-      --this.#current[this.#xyToIndex(x + 1, y + 0)];
-      --this.#current[this.#xyToIndex(x + 1, y - 1)];
-      --this.#current[this.#xyToIndex(x + 0, y - 1)];
-      --this.#current[this.#xyToIndex(x - 1, y - 1)];
-      --this.#current[this.#xyToIndex(x - 1, y + 0)];
-      --this.#current[this.#xyToIndex(x - 1, y + 1)];
+      this.#updateNeighbours(this.#current, i, -1);
+    }
+  }
+  /** add a sim object */
+  add(x: number, y: number, object: SimObjectLike) {
+    console.debug('add', object.name, { x, y });
+    const halfW = Math.round(object.width / 2);
+    const halfH = Math.round(object.height / 2);
+    // clear cells badly (border neighbours will still see them alive until next step)
+    for (let ox = -3; ox < object.width + 3; ++ox)
+      for (let oy = -3; oy < object.height + 3; ++oy) this.#current[this.#xyToIndex(x - halfW + ox, y - halfH + oy)] = 0;
+    for (const [ox, oy] of object.points) {
+      const [cx, cy] = [x - halfW + ox, y - halfH + oy];
+      const index = this.#xyToIndex(cx, cy);
+      // set alive
+      this.#current[index] = 0x10 | (this.#current[index] & 0xf);
+      this.#updateNeighbours(this.#current, [cx, cy], 1);
     }
   }
   /** @returns performance duration in whole millis since we don't have high precision timers on the client */
@@ -177,15 +201,7 @@ export class Simulation {
           // write nextAge and preserve existing partial nextNeighbours
           this.#next[i] = (Math.min(age + 1, 255) << 4) | (this.#next[i] & 0xf);
           // increment neighbour's neighbour counts
-          const [x, y] = this.#indexToXy(i);
-          ++this.#next[this.#xyToIndex(x + 0, y + 1)];
-          ++this.#next[this.#xyToIndex(x + 1, y + 1)];
-          ++this.#next[this.#xyToIndex(x + 1, y + 0)];
-          ++this.#next[this.#xyToIndex(x + 1, y - 1)];
-          ++this.#next[this.#xyToIndex(x + 0, y - 1)];
-          ++this.#next[this.#xyToIndex(x - 1, y - 1)];
-          ++this.#next[this.#xyToIndex(x - 1, y + 0)];
-          ++this.#next[this.#xyToIndex(x - 1, y + 1)];
+          this.#updateNeighbours(this.#next, i, 1);
           // accessible as a property
           ++this.#alive;
         }

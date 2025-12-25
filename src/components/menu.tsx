@@ -26,6 +26,7 @@ interface Context {
 
 const Context = createContext<Context | null>(null);
 
+/** `node.contains` doesn't work on svgs so additionally match by client rect */
 function elemContains(elem: HTMLElement, event: PointerEvent): boolean {
   if (elem === event.target || elem.contains(event.target as Node)) return true;
   const rect = elem.getBoundingClientRect();
@@ -58,7 +59,6 @@ export function Menu({
     const controller = new AbortController();
     document.addEventListener(
       'click',
-      // `node.contains` doesn't work on svgs so exclude by client rect instead
       (event) => {
         if (stateRef.current !== MenuState.Open) return;
         if (!triggerRef.current || !menuRef.current) return;

@@ -6,7 +6,7 @@ import { webfontDownload } from 'vite-plugin-webfont-dl';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), webfontDownload()],
+  plugins: [react(), tailwindcss(), webfontDownload(undefined, { embedFonts: true, injectAsStyleTag: false })],
   resolve: {
     alias: {
       '@': resolve(__dirname, './src/'),
@@ -15,4 +15,6 @@ export default defineConfig({
   server: {
     allowedHosts: true,
   },
+  base: './',
+  assetsInclude: ['**/*.txt'],
 });

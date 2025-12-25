@@ -19,15 +19,16 @@
     "typescript": "~5.9.3",
     "vite": "^7.2.4"
   },
+  "license": "GPL-3.0-only",
   "name": "game-of-life",
   "private": true,
   "scripts": {
     "build": "tsc -b && vite build",
+    "deploy": "scripts/deploy.sh",
     "dev": "vite --port 3000 --host 0.0.0.0",
     "format": "biome format --write",
     "icons": "npx tsx scripts/fix-pixelarticons.ts",
     "lint": "biome lint --reporter=summary",
-    "organise": "biome check --formatter-enabled=false --linter-enabled=false --reporter=summary",
     "start": "vite preview --port 3000  --host 0.0.0.0",
     "tidy": "npm run lint && npm run format"
   },

@@ -19,10 +19,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
 
   // spawn
   useEffect(() => {
-    simulationRef.current.updateSpawn({
-      ...controls.spawn,
-      chance: controls.spawn.enabled ? controls.spawn.chance : 0,
-    });
+    simulationRef.current.updateSpawn({ ...controls.spawn, chance: controls.spawn.enabled ? controls.spawn.chance : 0 });
   }, [controls.spawn]);
 
   // rules

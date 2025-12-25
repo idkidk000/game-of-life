@@ -91,14 +91,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [themeColour]);
 
   const contextValue: Context = useMemo(
-    () => ({
-      themeDark,
-      themeDarkRef,
-      themePreference,
-      setThemePreference,
-      themeColour,
-      setThemeColour,
-    }),
+    () => ({ themeDark, themeDarkRef, themePreference, setThemePreference, themeColour, setThemeColour }),
     [themeDark, themePreference, themeColour]
   );
 

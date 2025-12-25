@@ -1,10 +1,12 @@
-import { type MouseEvent, type RefObject, useCallback, useEffect, useLayoutEffect } from 'react';
-import { Command, useControls } from '@/hooks/controls';
+import { type MouseEvent, type RefObject, useCallback, useLayoutEffect } from 'react';
+import { useControls } from '@/hooks/controls';
+import { useSimObject } from '@/hooks/sim-object';
 import { useSimulation } from '@/hooks/simulation';
 
 export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | null> }) {
-  const { controls, controlsRef, commandsRef, setControls } = useControls();
+  const { controls, controlsRef, setControls } = useControls();
   const { simulationRef } = useSimulation();
+  const { activeSimObjectRef } = useSimObject();
 
   // adjust canvas resolution to fit the element
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
@@ -27,32 +29,7 @@ export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | 
     return () => observer.disconnect();
   }, [controls.scale]);
 
-  // save canvas img
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  useEffect(() => {
-    return commandsRef.current.subscribe(Command.Save, () => {
-      if (!canvasRef.current) return;
-      // FIXME: this doesn't seem to work on a webgl canvas. the docs don't mention it
-      // might need to rework when i switch over to regl fully
-      // https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob
-      canvasRef.current.toBlob(
-        (blob) => {
-          if (!blob) return;
-          const url = URL.createObjectURL(blob);
-          const anchor = document.createElement('a');
-          anchor.download = `game-of-life-${new Date().toISOString()}.png`;
-          anchor.href = url;
-          anchor.click();
-          anchor.remove();
-          URL.revokeObjectURL(url);
-        },
-        'image/png',
-        1
-      );
-    });
-  }, []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: controlsRef is a ref you silly goose
   const clientXyToSimXy = useCallback(({ clientX, clientY }: { clientX: number; clientY: number }): [canvasX: number, canvasY: number] => {
     if (!canvasRef.current) throw new Error('oh no');
     const canvasRect = canvasRef.current.getBoundingClientRect();
@@ -62,17 +39,18 @@ export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | 
   }, []);
 
   // click to spawn
-  // biome-ignore lint/correctness/useExhaustiveDependencies: controlsRef is a ref you silly goose
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleClick = useCallback(
     (event: MouseEvent<HTMLCanvasElement>) => {
-      simulationRef.current.spawn(...clientXyToSimXy(event));
+      if (activeSimObjectRef.current) simulationRef.current.add(...clientXyToSimXy(event), activeSimObjectRef.current);
+      else simulationRef.current.spawn(...clientXyToSimXy(event));
       if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
     },
     [clientXyToSimXy, setControls]
   );
 
   // right-click to erase
-  // biome-ignore lint/correctness/useExhaustiveDependencies: controlsRef is a ref you silly goose
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleRightClick = useCallback(
     (event: MouseEvent<HTMLCanvasElement>) => {
       event.preventDefault();
@@ -83,7 +61,7 @@ export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | 
   );
 
   // drag to spawn, right-drag to erase
-  // biome-ignore lint/correctness/useExhaustiveDependencies: controlsRef is a ref you silly goose
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleMouseMove = useCallback(
     (event: MouseEvent<HTMLCanvasElement>) => {
       if (!event.buttons) return;

@@ -4,21 +4,22 @@ export function Button({
   children,
   type = 'button',
   label,
+  title,
   ...props
 }: {
   children: ReactNode;
-  title: string;
+  title?: string;
   onClick: () => unknown;
   disabled?: boolean;
   type?: ButtonHTMLAttributes<HTMLButtonElement>['type'];
   className?: string;
-  label?: string;
+  label: string;
   ref?: RefObject<HTMLButtonElement>;
 }) {
   return (
-    <button type={type} {...props}>
-      {label ? <span className='hidden lg:inline'>{label}</span> : null}
+    <button type={type} title={title ?? label} {...props}>
       {children}
+      <span>{label}</span>
     </button>
   );
 }

@@ -20,14 +20,9 @@ export function Select<Value extends string | number>({
 
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLSelectElement>) => {
-      switch (type) {
-        case 'string':
-          return onValueChange(event.target.value as Value);
-        case 'number':
-          return onValueChange(Number(event.target.value) as Value);
-        default:
-          throw new Error(`unhandled type ${type}`);
-      }
+      if (type === 'string') return onValueChange(event.target.value as Value);
+      if (type === 'number') return onValueChange(Number(event.target.value) as Value);
+      throw new Error(`unhandled type ${type}`);
     },
     [type, onValueChange]
   );

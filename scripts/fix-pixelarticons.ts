@@ -9,8 +9,7 @@ import { cwd } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const sourcePath = 'node_modules/pixelarticons/svg';
-// ordinarily this would be output to `generated/`, excluded from git, and regenerated as part of the `build` task
-const destPath = 'src/components';
+const destPath = 'src/generated';
 const destName = 'icons.tsx';
 
 const head = `/**
@@ -40,10 +39,7 @@ async function generateComponent(fileName: string) {
   // match only the `d="..."` part of the path elements and skip any attributes
   const pathMatches = [...content.matchAll(/<path.*\s+d="(?<d>[^"]+)"/g)].map((entry) => entry.groups?.d);
 
-  if (pathMatches.some((path) => typeof path === 'undefined'))
-    throw new Error('could not match path', {
-      cause: { sourceFile, content },
-    });
+  if (pathMatches.some((path) => typeof path === 'undefined')) throw new Error('could not match path', { cause: { sourceFile, content } });
 
   const componentName = fileName
     .replace(/\.svg$/, '')
@@ -69,18 +65,18 @@ export function ${componentName}(props: SVGProps<SVGSVGElement>): JSX.Element {
 `;
 }
 
-const sourceNames = (
-  await readdir(sourcePath, {
-    encoding: 'utf-8',
-    recursive: false,
-    withFileTypes: true,
-  })
-)
+const sourceNames = (await readdir(sourcePath, { encoding: 'utf-8', recursive: false, withFileTypes: true }))
   .filter((entry) => entry.isFile() && entry.name.endsWith('.svg'))
   .map(({ name }) => name)
   .toSorted();
 const components = await Promise.all(sourceNames.map(generateComponent));
+const output = [head, ...components].join('');
+
 await mkdir(destPath, { recursive: true });
 const destFile = join(destPath, destName);
-await writeFile(destFile, [head, ...components].join(''));
-console.info('wrote', components.length, 'components to', destFile);
+const contents = await readFile(destFile, { encoding: 'utf-8' }).catch(() => '');
+
+if (output !== contents) {
+  await writeFile(destFile, [head, ...components].join(''));
+  console.info('wrote', components.length, 'components to', destFile);
+} else console.info('no updates made to', destFile);

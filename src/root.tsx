@@ -3,6 +3,7 @@ import '@/styles.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ControlsProvider } from '@/hooks/controls';
+import { SimObjectProvider } from '@/hooks/sim-object';
 import { SimulationProvider } from '@/hooks/simulation';
 import { ThemeProvider } from '@/hooks/theme';
 
@@ -13,9 +14,11 @@ createRoot(root).render(
   <StrictMode>
     <ThemeProvider>
       <ControlsProvider>
-        <SimulationProvider>
-          <Page />
-        </SimulationProvider>
+        <SimObjectProvider>
+          <SimulationProvider>
+            <Page />
+          </SimulationProvider>
+        </SimObjectProvider>
       </ControlsProvider>
     </ThemeProvider>
   </StrictMode>

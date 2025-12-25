@@ -1,7 +1,3 @@
-/**
- * @noprettier STOP INVENTING STUPID PLACES TO PUT A SEMICOLON PLEASE
- */
-
 import convert from 'color-convert';
 import { useEffect, useRef } from 'react';
 import REGL from 'regl';
@@ -11,10 +7,14 @@ import { useSimulation } from '@/hooks/simulation';
 import { useTheme } from '@/hooks/theme';
 import { SlidingWindow } from '@/lib/sliding-window';
 
-type DynamicProps = { gridSize: [x: number, y: number]; instances: number };
+interface DynamicProps {
+  gridSize: [x: number, y: number];
+  instances: number;
+}
 
 /** TODO:
  *  - bloom. but the regl docs assume that you already know how to use webgl. which i do not.
+ *  - save image. canvasRef.current.toBlob() doesn't work for webgl
  */
 export function RendererRegl() {
   const canvasRef = useRef<HTMLCanvasElement>(null);

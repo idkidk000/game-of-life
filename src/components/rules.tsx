@@ -1,6 +1,6 @@
 import { type ChangeEvent, useCallback, useId } from 'react';
 import { Button } from '@/components/button';
-import { Dice } from '@/components/icons';
+import { Dice } from '@/generated/icons';
 import type { SimRule, SimRules } from '@/lib/simulation';
 
 const cells = Array.from({ length: 9 }, (_, i) => i);
@@ -49,10 +49,7 @@ export function Rules({ values, onValueChange }: { values: SimRules; onValueChan
   const handleSurviveChange = useCallback((survive: SimRule) => onValueChange({ ...values, survive }), [onValueChange, values]);
 
   const handleRandomiseClick = useCallback(() => {
-    onValueChange({
-      born: randomise(),
-      survive: randomise(),
-    });
+    onValueChange({ born: randomise(), survive: randomise() });
   }, [onValueChange]);
 
   return (
@@ -60,7 +57,7 @@ export function Rules({ values, onValueChange }: { values: SimRules; onValueChan
       <Rule label='Born' onValueChange={handleBornChange} title='Cell is born when this many live neighbours' value={values.born} />
       <Rule label='Survive' onValueChange={handleSurviveChange} title='Cell survives when this many live neighbours' value={values.survive} />
       <span>{`B${values.born.toSorted().join('')}/S${values.survive.toSorted().join('')}`}</span>
-      <Button title='Randomise' onClick={handleRandomiseClick}>
+      <Button title='Randomise' onClick={handleRandomiseClick} label='Rand'>
         <Dice />
       </Button>
     </div>

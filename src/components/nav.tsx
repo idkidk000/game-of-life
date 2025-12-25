@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/button';
 import { Checkbox } from '@/components/checkbox';
+import { Menu, MenuClickToClose, MenuContent, MenuTrigger } from '@/components/menu';
+import { ObjectViewer } from '@/components/object-viewer';
+import { Range } from '@/components/range';
+import { Rules } from '@/components/rules';
+import { Select } from '@/components/select';
 import {
+  AddBox,
   Bug,
   Camera,
   Cut,
@@ -20,12 +26,9 @@ import {
   ViewportNarrow,
   ViewportWide,
   Zap,
-} from '@/components/icons';
-import { Menu, MenuClickToClose, MenuContent, MenuTrigger } from '@/components/menu';
-import { Range } from '@/components/range';
-import { Rules } from '@/components/rules';
-import { Select } from '@/components/select';
+} from '@/generated/icons';
 import { Command, type Controls as ControlsType, controlDefaults, Renderer, useControls } from '@/hooks/controls';
+import { useSimObject } from '@/hooks/sim-object';
 import { useSimulation } from '@/hooks/simulation';
 import { type ThemeColour, ThemePreference, themeColours, useTheme } from '@/hooks/theme';
 import { SimPrune } from '@/lib/simulation';
@@ -36,6 +39,7 @@ export function Nav() {
   const { themePreference, setThemePreference, themeColour, setThemeColour } = useTheme();
   const { simulationRef, stepTimesRef } = useSimulation();
   const [fullScreen, setFullScreen] = useState(!!document.fullscreenElement);
+  const { simObjects } = useSimObject();
 
   // states
   const handleBloomClick = useCallback(() => setControls((prev) => ({ ...prev, bloom: !prev.bloom })), [setControls]);
@@ -44,25 +48,15 @@ export function Nav() {
 
   const handleScaleChange = useCallback((scale: number) => setControls((prev) => ({ ...prev, scale, paused: false })), [setControls]);
 
+  // biome-ignore format: do not
   const handleSpawnRadiusChange = useCallback(
-    (radius: number) =>
-      setControls((prev) => ({
-        ...prev,
-        spawn: { ...prev.spawn, radius },
-        paused: false,
-      })),
-    [setControls]
-  );
+    (radius: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, radius }, paused: false })),
+  [setControls] );
 
+  // biome-ignore format: do not
   const handleSpawnChanceChange = useCallback(
-    (chance: number) =>
-      setControls((prev) => ({
-        ...prev,
-        spawn: { ...prev.spawn, chance },
-        paused: false,
-      })),
-    [setControls]
-  );
+    (chance: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, chance }, paused: false })),
+  [setControls]);
 
   const handleSpeedChange = useCallback((speed: number) => setControls((prev) => ({ ...prev, speed, paused: false })), [setControls]);
 
@@ -72,13 +66,11 @@ export function Nav() {
 
   const handleResetClick = useCallback(() => setControls(() => ({ ...controlDefaults })), [setControls]);
 
+  // biome-ignore format: do not
   const handleThemeClick = useCallback(
-    () =>
-      setThemePreference((prev) =>
-        prev === ThemePreference.Auto ? ThemePreference.Dark : prev === ThemePreference.Dark ? ThemePreference.Light : ThemePreference.Auto
-      ),
-    [setThemePreference]
-  );
+    () => setThemePreference((prev) =>
+      prev === ThemePreference.Auto ? ThemePreference.Dark : prev === ThemePreference.Dark ? ThemePreference.Light : ThemePreference.Auto
+  ), [setThemePreference]);
 
   const handleRendererChange = useCallback((renderer: number) => setControls((prev) => ({ ...prev, renderer })), [setControls]);
 
@@ -159,22 +151,23 @@ export function Nav() {
 
     const controller = new AbortController();
 
-    document.addEventListener(
-      'keydown',
-      (event) => {
-        const shortcut = shortcuts.get(event.key.toLocaleLowerCase());
-        if (!shortcut) return;
-        event.stopPropagation();
-        event.preventDefault();
-        console.debug('shortcut', event.key, shortcut);
-        shortcut();
-      },
-      { signal: controller.signal }
-    );
+    // biome-ignore format: do not
+    document.addEventListener('keydown', (event) => {
+      const shortcut = shortcuts.get(event.key.toLocaleLowerCase());
+      if (!shortcut) return;
+      event.stopPropagation();
+      event.preventDefault();
+      console.debug('shortcut', event.key, shortcut);
+      shortcut();
+    }, { signal: controller.signal });
 
-    document.addEventListener('fullscreenchange', () => {
-      setFullScreen(!!document.fullscreenElement);
-    });
+    document.addEventListener('fullscreenchange', () => setFullScreen(!!document.fullscreenElement), { signal: controller.signal });
+
+    // biome-ignore format: do not
+    document.addEventListener('wheel', (event) => {
+      if (event.deltaY < 0) setControls((prev) => ({ ...prev, scale: Math.min(1.0, prev.scale + 0.1) }));
+      if (event.deltaY > 0) setControls((prev) => ({ ...prev, scale: Math.max(0.1, prev.scale - 0.1) }));
+    }, { signal: controller.signal });
 
     return () => controller.abort();
   }, [
@@ -193,7 +186,7 @@ export function Nav() {
   return (
     <nav className='flex flex-wrap gap-4 items-center justify-center w-full p-4'>
       <Menu>
-        <MenuTrigger title='Menu'>
+        <MenuTrigger title='Menu' label='Menu'>
           <MenuIcon />
         </MenuTrigger>
         <MenuContent>
@@ -240,10 +233,7 @@ export function Nav() {
             <Select
               label='Colour'
               onValueChange={handleThemeColourChange}
-              options={themeColours.map((colour) => ({
-                key: colour,
-                label: `${colour[0].toLocaleUpperCase()}${colour.slice(1)}`,
-              }))}
+              options={themeColours.map((colour) => ({ key: colour, label: `${colour[0].toLocaleUpperCase()}${colour.slice(1)}` }))}
               title='Select theme colour'
               type='string'
               value={themeColour}
@@ -251,6 +241,7 @@ export function Nav() {
             <Button
               onClick={handleThemeClick}
               title={themePreference === ThemePreference.Dark ? 'Dark' : themePreference === ThemePreference.Light ? 'Light' : 'System'}
+              label='Theme'
             >
               {themePreference === ThemePreference.Dark ? <Moon /> : themePreference === ThemePreference.Light ? <SunAlt /> : <Monitor />}
             </Button>
@@ -264,10 +255,10 @@ export function Nav() {
               type='number'
               value={controls.renderer}
             />
-            <Button onClick={handleBloomClick} title='Bloom filter' className={controls.bloom ? 'bg-accent' : ''}>
+            <Button onClick={handleBloomClick} title='Bloom filter' className={controls.bloom ? 'bg-accent' : ''} label='Bloom'>
               <LightbulbOn />
             </Button>
-            <Button onClick={handleDumpClick} title='Dump to console'>
+            <Button onClick={handleDumpClick} title='Dump to console' label='Dump'>
               <Bug />
             </Button>
             <Button
@@ -275,43 +266,62 @@ export function Nav() {
               onClick={handleResetClick}
               disabled={objectIsEqual(omit(controlDefaults, ['paused']), omit(controls, ['paused']))}
               title='Reset controls'
+              label='Reset'
             >
               <Undo />
             </Button>
           </div>
         </MenuContent>
       </Menu>
-      <Button onClick={handlePausedClick} title={controls.paused ? 'Paused' : 'Running'} className={controls.paused ? 'animate-pulse' : 'bg-accent'}>
+      <Button
+        onClick={handlePausedClick}
+        title={controls.paused ? 'Paused' : 'Running'}
+        className={controls.paused ? 'animate-pulse' : 'bg-accent'}
+        label='Play'
+      >
         {controls.paused ? <Pause /> : <Play />}
       </Button>
-      <Button onClick={handleStepClick} title='Single step'>
+      <Button onClick={handleStepClick} title='Single step' label='Step'>
         <Next />
       </Button>
-      <Button onClick={handleClearClick} title='Clear'>
+      <Button onClick={handleClearClick} title='Clear simulation' label='Clear'>
         <Trash />
       </Button>
-      <Button onClick={handleSeedClick} title='Seed'>
+      <Button onClick={handleSeedClick} title='Randomise cells' label='Seed'>
         <Zap />
       </Button>
       <Menu clickToClose={MenuClickToClose.Both}>
-        <MenuTrigger title='Prune'>
+        <MenuTrigger title='Prune by age' label='Prune'>
           <Cut />
         </MenuTrigger>
         <MenuContent width='auto'>
-          <div className='flex flex-row gap-4 p-4'>
-            <Button title='Youngest' onClick={handlePruneYoungestClick}>
+          <div className='flex flex-row gap-4 p-4 justify-center items-center'>
+            <Button title='Prune youngest' onClick={handlePruneYoungestClick} label='Young'>
               <UserMinus />
             </Button>
-            <Button title='Oldest' onClick={handlePruneOldestClick}>
+            <Button title='Prune oldest' onClick={handlePruneOldestClick} label='Old'>
               <UserPlus />
             </Button>
           </div>
         </MenuContent>
       </Menu>
-      <Button title={fullScreen ? 'Minimise' : 'Full screen'} onClick={handleFullScreenClick} className={fullScreen ? 'bg-accent' : undefined}>
+      <Menu clickToClose={MenuClickToClose.Both}>
+        <MenuTrigger title='Add object' label='Add'>
+          <AddBox />
+        </MenuTrigger>
+        <MenuContent width='full'>
+          <div className='flex flex-wrap gap-4 p-4 justify-center items-center'>
+            {simObjects.map((simObject) => (
+              <ObjectViewer key={simObject.id} object={simObject} />
+            ))}
+            <ObjectViewer object={null} />
+          </div>
+        </MenuContent>
+      </Menu>
+      <Button title={fullScreen ? 'Minimise' : 'Full screen'} onClick={handleFullScreenClick} className={fullScreen ? 'bg-accent' : undefined} label='Full'>
         {fullScreen ? <ViewportNarrow /> : <ViewportWide />}
       </Button>
-      <Button title='Save image' onClick={handleSaveClick}>
+      <Button title='Save image' onClick={handleSaveClick} label='Save'>
         <Camera />
       </Button>
     </nav>
