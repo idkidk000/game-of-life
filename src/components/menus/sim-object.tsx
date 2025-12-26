@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/button';
 import { Menu, MenuClose, MenuContent, MenuTrigger } from '@/components/menu';
 import { Modal, ModalContent, ModalTrigger, useModal } from '@/components/modal';
+import { ToolTip } from '@/components/tooltip';
 import { AddBox, CardText } from '@/generated/icons';
 import { useControls } from '@/hooks/controls';
 import { useSimObject } from '@/hooks/sim-object';
@@ -27,22 +28,30 @@ function SimObjectViewer<T extends string | null | undefined>({
   const handleClick = useCallback(() => onClick?.(id), [id, onClick]);
 
   return (
-    <span
-      className={`flex flex-col gap-4 items-center justify-center p-4 border-3 max-w-40 overflow-hidden ${(activeSimObject && activeSimObject.id === id) || (!activeSimObject && activeSimObject === id) ? 'border-accent' : 'border-transparent hover:border-accent/50 active:border-accent'}`}
-      onClick={handleClick}
-      title={name}
-    >
-      <svg fill='currentColor' stroke='currentColor' strokeLinecap='square' strokeWidth='0' viewBox={`0 0 ${width} ${height}`} className='h-12 max-w-full'>
-        <title>{`${name} preview`}</title>
-        {points.map(([x, y]) => (
-          <rect key={`${x},${y}`} x={x} y={y} width='1' height='1' />
-        ))}
-      </svg>
-      <div className='flex flex-col items-center justify-center max-w-full'>
-        <span className='max-w-full truncate text-sm'>{name}</span>
-        <span className='text-xs'>{width || height ? `${width} x ${height}` : ''}</span>
-      </div>
-    </span>
+    <ToolTip title={name ?? 'Unknown'}>
+      <span
+        className={`flex flex-col gap-4 items-center justify-center p-4 border-3 max-w-40 overflow-hidden ${(activeSimObject && activeSimObject.id === id) || (!activeSimObject && activeSimObject === id) ? 'border-accent' : 'border-transparent hover:border-accent/50 active:border-accent'}`}
+        onClick={handleClick}
+      >
+        <svg
+          aria-hidden={true}
+          fill='currentColor'
+          stroke='currentColor'
+          strokeLinecap='square'
+          strokeWidth='0'
+          viewBox={`0 0 ${width} ${height}`}
+          className='h-12 max-w-full'
+        >
+          {points.map(([x, y]) => (
+            <rect key={`${x},${y}`} x={x} y={y} width='1' height='1' />
+          ))}
+        </svg>
+        <div className='flex flex-col items-center justify-center max-w-full'>
+          <span className='max-w-full truncate text-sm'>{name ?? 'Unknown'}</span>
+          <span className='text-xs'>{width || height ? `${width} x ${height}` : ''}</span>
+        </div>
+      </span>
+    </ToolTip>
   );
 }
 

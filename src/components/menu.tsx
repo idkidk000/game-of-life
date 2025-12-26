@@ -128,10 +128,7 @@ export function MenuContent({
       menuRef.current.style.top = `calc(${triggerRect.bottom}px + 1em)`;
       // offset and bottom padding
       menuRef.current.style.maxHeight = `calc(100dvh - ${triggerRect.bottom}px - 2em)`;
-      if (width === 'auto') {
-        menuRef.current.style.translate = '-100%';
-        menuRef.current.style.left = `${triggerRect.right}px`;
-      }
+      if (width === 'auto') menuRef.current.style.left = `${triggerRect.right}px`;
     };
     const observer = new ResizeObserver(update);
     observer.observe(document.documentElement);
@@ -157,10 +154,13 @@ export function MenuContent({
       ref={ref}
       className={`size-full transition-[background] duration-200 starting:bg-transparent ${state === MenuState.Open ? 'bg-background/50' : state === MenuState.Closing ? 'bg-transparent' : 'hidden'}`}
     >
-      <menu className={`fixed ${width === 'full' ? 'left-0 right-0' : ''} ${className} ${state === MenuState.Closing ? classNameClosing : ''}`} ref={menuRef}>
+      <menu
+        className={`fixed ${width === 'full' ? 'left-0 right-0' : '-translate-x-full'} ${className} ${state === MenuState.Closing ? classNameClosing : ''}`}
+        ref={menuRef}
+      >
         {children}
       </menu>
     </div>,
-    document.body
+    document.body.querySelector('#menus') ?? document.body
   );
 }

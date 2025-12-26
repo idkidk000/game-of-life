@@ -1,4 +1,5 @@
 import { type ChangeEvent, useCallback, useId } from 'react';
+import { ToolTip } from '@/components/tooltip';
 
 export function Range({
   label,
@@ -28,10 +29,12 @@ export function Range({
   const handleChange = useCallback((event: ChangeEvent<HTMLInputElement>) => onValueChange(event.target.valueAsNumber), [onValueChange]);
 
   return (
-    <span className='input-group' title={title}>
-      <label htmlFor={id}>{label}</label>
-      <input id={id} type='range' min={min} max={max} step={step} onChange={handleChange} value={value} disabled={disabled} />
-      <span>{`${value.toFixed(decimals)}${unit}`}</span>
-    </span>
+    <ToolTip title={title}>
+      <span className='input-group'>
+        <label htmlFor={id}>{label}</label>
+        <input id={id} type='range' min={min} max={max} step={step} onChange={handleChange} value={value} disabled={disabled} />
+        <span>{`${value.toFixed(decimals)}${unit}`}</span>
+      </span>
+    </ToolTip>
   );
 }

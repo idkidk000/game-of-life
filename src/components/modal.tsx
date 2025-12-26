@@ -127,11 +127,11 @@ export function ModalContent({
   return createPortal(
     <dialog
       ref={modalRef}
-      className={`size-full transition-[background] duration-200 starting:bg-transparent flex m-4 ${state === ModalState.Open ? 'bg-background/50' : state === ModalState.Closing ? 'bg-transparent' : 'hidden'}`}
+      className={`size-full transition-[background] duration-200 starting:bg-transparent flex m-4 max-w-[calc(100dvw-2em)] max-h-[calc(100dvh-2em)] ${state === ModalState.Open ? 'bg-background/50' : state === ModalState.Closing ? 'bg-transparent' : 'hidden'}`}
       // onClick={setClosed}
     >
       <div className={`${className} ${state === ModalState.Closing ? classNameClosing : ''}`}>{children}</div>
     </dialog>,
-    document.body
+    document.body.querySelector('#modals') ?? document.body
   );
 }

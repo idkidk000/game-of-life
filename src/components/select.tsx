@@ -1,4 +1,5 @@
 import { type ChangeEvent, type MouseEvent, useCallback, useId, useRef } from 'react';
+import { ToolTip } from '@/components/tooltip';
 
 export function Select<Value extends string | number>({
   onValueChange,
@@ -33,15 +34,17 @@ export function Select<Value extends string | number>({
 
   // mozilla pls https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/::picker
   return (
-    <span className='input-group' title={title} onClick={handleSpanClick}>
-      <label htmlFor={id}>{label}</label>
-      <select id={id} value={value} onChange={handleChange} ref={selectRef}>
-        {options.map(({ key, label }) => (
-          <option key={key} value={key}>
-            {label}
-          </option>
-        ))}
-      </select>
-    </span>
+    <ToolTip title={title}>
+      <span className='input-group' onClick={handleSpanClick}>
+        <label htmlFor={id}>{label}</label>
+        <select id={id} value={value} onChange={handleChange} ref={selectRef}>
+          {options.map(({ key, label }) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </span>
+    </ToolTip>
   );
 }

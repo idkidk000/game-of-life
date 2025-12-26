@@ -1,5 +1,6 @@
 import { type ChangeEvent, useCallback, useId } from 'react';
 import { Button } from '@/components/button';
+import { ToolTip } from '@/components/tooltip';
 import { Dice } from '@/generated/icons';
 import type { SimRule, SimRules } from '@/lib/simulation';
 
@@ -32,14 +33,16 @@ function Rule({ label, value, onValueChange, title }: { label: string; value: Si
   const id = useId();
 
   return (
-    <section className='input-group' title={title}>
-      <label htmlFor={id}>{label}</label>
-      <span id={id} className='grid grid-rows-2 grid-cols-5 *:first:row-span-2 gap-x-4 gap-y-2'>
-        {cells.map((cell) => (
-          <Cell number={cell} onValueChange={onValueChange} value={value} key={cell} />
-        ))}
-      </span>
-    </section>
+    <ToolTip title={title}>
+      <section className='input-group'>
+        <label htmlFor={id}>{label}</label>
+        <span id={id} className='grid grid-rows-2 grid-cols-5 *:first:row-span-2 gap-x-4 gap-y-2'>
+          {cells.map((cell) => (
+            <Cell number={cell} onValueChange={onValueChange} value={value} key={cell} />
+          ))}
+        </span>
+      </section>
+    </ToolTip>
   );
 }
 

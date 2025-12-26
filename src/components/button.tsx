@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode, RefObject } from 'react';
+import { ToolTip } from '@/components/tooltip';
 
 export function Button({
   children,
@@ -17,9 +18,11 @@ export function Button({
   ref?: RefObject<HTMLButtonElement>;
 }) {
   return (
-    <button type={type} title={title ?? label} {...props}>
-      {children}
-      <span>{label}</span>
-    </button>
+    <ToolTip title={title ?? label}>
+      <button type={type} {...props}>
+        {children}
+        <span>{label}</span>
+      </button>
+    </ToolTip>
   );
 }
