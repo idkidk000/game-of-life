@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/button';
 import { Menu, MenuClose, MenuContent, MenuTrigger } from '@/components/menu';
 import { Modal, ModalContent, ModalTrigger, useModal } from '@/components/modal';
-import { ToolTip } from '@/components/tooltip';
 import { AddBox, CardText } from '@/generated/icons';
 import { useControls } from '@/hooks/controls';
 import { useSimObject } from '@/hooks/sim-object';
+import { ToolTip } from '@/hooks/tooltip';
 import { SimObject } from '@/lib/sim-object';
 
 function SimObjectViewer<T extends string | null | undefined>({

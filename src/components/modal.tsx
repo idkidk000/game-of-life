@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, type RefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, type ReactElement, type ReactNode, type RefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 enum ModalState {
@@ -73,7 +73,7 @@ export function useModal() {
   return context;
 }
 
-export function ModalTrigger({ children }: { children: ReactNode }) {
+export function ModalTrigger({ children }: { children: ReactElement }) {
   const { triggerRef, toggleOpen } = useModal();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
@@ -85,7 +85,7 @@ export function ModalTrigger({ children }: { children: ReactNode }) {
 
   return <span ref={triggerRef}>{children}</span>;
 }
-export function ModalClose({ children }: { children: ReactNode }) {
+export function ModalClose({ children }: { children: ReactElement }) {
   const { setClosed } = useModal();
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -103,7 +103,7 @@ export function ModalContent({
   className = 'bg-background border-3 border-accent mx-auto mb-auto lg:my-auto overflow-y-auto starting:opacity-0 starting:scale-95 starting:-translate-y-[25dvh] origin-center duration-200 ease-in transition-[opacity,scale,translate]',
   classNameClosing = 'scale-95 opacity-0 translate-y-[25dvh]',
 }: {
-  children: ReactNode;
+  children: ReactElement;
   className?: string;
   classNameClosing?: string;
 }) {

@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode, RefObject } from 'react';
-import { ToolTip } from '@/components/tooltip';
+import { ToolTip } from '@/hooks/tooltip';
 
 export function Button({
   children,

@@ -1,5 +1,5 @@
 import { type ChangeEvent, useCallback, useId } from 'react';
-import { ToolTip } from '@/components/tooltip';
+import { ToolTip } from '@/hooks/tooltip';
 
 export function Range({
   label,

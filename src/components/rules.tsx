@@ -1,7 +1,7 @@
 import { type ChangeEvent, useCallback, useId } from 'react';
 import { Button } from '@/components/button';
-import { ToolTip } from '@/components/tooltip';
 import { Dice } from '@/generated/icons';
+import { ToolTip } from '@/hooks/tooltip';
 import type { SimRule, SimRules } from '@/lib/simulation';
 
 const cells = Array.from({ length: 9 }, (_, i) => i);

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { createContext, type RefObject, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -75,7 +75,7 @@ export function useMenu() {
   return context;
 }
 
-export function MenuTrigger({ children }: { children: ReactNode }) {
+export function MenuTrigger({ children }: { children: ReactElement }) {
   const { toggleOpen, triggerRef } = useMenu();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
@@ -88,7 +88,7 @@ export function MenuTrigger({ children }: { children: ReactNode }) {
   return <span ref={triggerRef}>{children}</span>;
 }
 
-export function MenuClose({ children }: { children: ReactNode }) {
+export function MenuClose({ children }: { children: ReactElement }) {
   const { setClosed } = useMenu();
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -109,7 +109,7 @@ export function MenuContent({
   classNameClosing = 'scale-95 opacity-0 translate-y-[25dvh]',
   width = 'full',
 }: {
-  children: ReactNode;
+  children: ReactElement;
   className?: string;
   classNameClosing?: string;
   width?: 'full' | 'auto';
