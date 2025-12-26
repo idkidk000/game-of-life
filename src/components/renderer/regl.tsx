@@ -10,12 +10,13 @@ import { SlidingWindow } from '@/lib/sliding-window';
 interface DynamicProps {
   gridSize: [x: number, y: number];
   instances: number;
+  framebuffer: REGL.Framebuffer2D | null;
 }
 
-/** TODO:
- *  - bloom. but the regl docs assume that you already know how to use webgl. which i do not.
- *  - save image. canvasRef.current.toBlob() doesn't work for webgl
- */
+// https://github.com/regl-project/regl/blob/gh-pages/API.md
+// https://github.com/regl-project/regl/tree/gh-pages/example
+// https://github.com/rreusser/bloom-effect-example/
+// https://wikis.khronos.org/opengl/Data_Type_(GLSL) (but webgl1 is based on opengl es 2, which is very old, so a lot of these docs don't apply)
 export function RendererRegl() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { controlsRef } = useControls();
@@ -27,12 +28,10 @@ export function RendererRegl() {
   useEffect(() => {
     if (!canvasRef.current) return;
     const frameTimes = new SlidingWindow<number>(100);
-    // https://github.com/regl-project/regl/blob/gh-pages/API.md
-    // https://github.com/regl-project/regl/tree/gh-pages/example
-    // `angle_instanced_arrays` is for instancing. `EXT_disjoint_timer_query` is for profiling during dev https://github.com/regl-project/regl/blob/main/API.md#profiling but it doesn't work
     // { preserveDrawingBuffer: true } is required to make canvas.toBlob() work
     const gl = canvasRef.current.getContext('webgl', { preserveDrawingBuffer: true });
     if (!gl) return;
+    // `angle_instanced_arrays` is for instancing. `EXT_disjoint_timer_query` is for profiling during dev https://github.com/regl-project/regl/blob/main/API.md#profiling but it doesn't work at least in firefox
     const regl = REGL({ gl, extensions: ['angle_instanced_arrays'] });
 
     let simSize = simulationRef.current.size;
@@ -42,20 +41,28 @@ export function RendererRegl() {
     let colourArray = new Uint8Array(simSize * 3);
     let positionArray = new Uint16Array(simSize * 2);
 
+    // in fake bloom, `draw` renders to `framebuffer` which uses this. then `fakeBloom` reads this as a texture and blurs it badly
+    const texture = regl.texture({
+      width: simulationRef.current.width,
+      height: simulationRef.current.height,
+      format: 'rgb',
+    });
+    const framebuffer = regl.framebuffer({ color: texture, stencil: false });
+
     // `regl` is a generic but doesn't infer types. with no type args, the returned function's param is typed as Partial<{}> | Partial<{}>[]
     const draw = regl<Record<string, unknown>, Record<string, unknown>, DynamicProps>({
-      // data types: https://wikis.khronos.org/opengl/Data_Type_(GLSL) but anything other than vecx seems to be a syntax error and won't compile. maybe because this is webgl1 and not 2? vecx are f32[] so i suppose the u8s and u16s are being cast by or before getting to the shaders? which i suppose is fine as long as long as they're being transferred around as u8 / u16
+      // called per vertex
       vert: `
         #pragma vscode_glsllint_stage : vert
         precision mediump float;
-        attribute vec2 verts;
         // only attributes support instanced data
-        attribute vec3 colour;
+        attribute vec2 verts;
+        attribute lowp vec3 colour;
         attribute vec2 position;
         // uniforms are per-call
         uniform vec2 gridSize;
         // varying is for passing data from vertex to fragment shader
-        varying vec3 vColour;
+        varying lowp vec3 vColour;
         void main() {
           vec2 scale = 2.0 / gridSize;
           // coord space is -1 to 1
@@ -65,10 +72,11 @@ export function RendererRegl() {
           // attributes have to be passed as varyings to the fragment shader
           vColour = colour;
         }`,
+      // called per pixel
       frag: `
         #pragma vscode_glsllint_stage : frag
-        precision mediump float;
-        varying vec3 vColour;
+        precision lowp float;
+        varying lowp vec3 vColour;
         void main() {
           // from the vertex shader
           gl_FragColor = vec4(vColour / 255.0, 1.0);
@@ -100,8 +108,72 @@ export function RendererRegl() {
         gridSize: regl.prop<DynamicProps, 'gridSize'>('gridSize'),
       },
       instances: regl.prop<DynamicProps, 'instances'>('instances'),
-      // TODO: disable this
-      profile: true,
+      framebuffer: regl.prop<DynamicProps, 'framebuffer'>('framebuffer'),
+    });
+
+    // i lack the skills to do it properly
+    const fakeBloom = regl({
+      // renders a quad which fills the whole screen and passes uv coords to the frag shader for texture lookup
+      vert: `
+        precision mediump float;
+        varying vec2 uv;
+        attribute vec2 verts;
+        void main() {
+          uv = verts * 0.5 + 0.5;
+          gl_Position = vec4(verts, 0, 1);
+        }
+      `,
+      // run per pixel. looks up texture using uv from vertex shader
+      frag: `
+        precision lowp float;
+        uniform lowp sampler2D texture;
+        uniform vec2 gridSize;
+        varying vec2 uv;
+
+        void main() {
+          // vec2 cell = vec2(1, 1) / gridSize;
+          float cx=1.0/gridSize.x;
+          float cy=1.0/gridSize.y;
+
+          vec3 color = texture2D(texture, uv).rgb * 0.5;
+
+          // don't look at this bit
+          color += texture2D(texture, uv + vec2(  0,-cy)).rgb * 0.1;
+          color += texture2D(texture, uv + vec2( cx,-cy)).rgb * 0.1;
+          color += texture2D(texture, uv + vec2( cx,  0)).rgb * 0.1;
+          color += texture2D(texture, uv + vec2( cx, cy)).rgb * 0.1;
+          color += texture2D(texture, uv + vec2(  0, cy)).rgb * 0.1;
+          color += texture2D(texture, uv + vec2(-cx, cy)).rgb * 0.1;
+          color += texture2D(texture, uv + vec2(-cx,  0)).rgb * 0.1;
+          color += texture2D(texture, uv + vec2(-cx,-cy)).rgb * 0.1;
+
+          color += texture2D(texture, uv + vec2(  0,-cy)*0.5).rgb * 0.1;
+          color += texture2D(texture, uv + vec2( cx,-cy)*0.5).rgb * 0.1;
+          color += texture2D(texture, uv + vec2( cx,  0)*0.5).rgb * 0.1;
+          color += texture2D(texture, uv + vec2( cx, cy)*0.5).rgb * 0.1;
+          color += texture2D(texture, uv + vec2(  0, cy)*0.5).rgb * 0.1;
+          color += texture2D(texture, uv + vec2(-cx, cy)*0.5).rgb * 0.1;
+          color += texture2D(texture, uv + vec2(-cx,  0)*0.5).rgb * 0.1;
+          color += texture2D(texture, uv + vec2(-cx,-cy)*0.5).rgb * 0.1;
+
+          gl_FragColor = vec4(color, 1);
+        }
+      `,
+      uniforms: {
+        texture,
+        gridSize: regl.prop<DynamicProps, 'gridSize'>('gridSize'),
+      },
+      attributes: {
+        verts: [
+          [-1, -1],
+          [1, -1],
+          [-1, 1],
+          [-1, 1],
+          [1, -1],
+          [1, 1],
+        ],
+      },
+      count: 6,
     });
 
     // per-frame callback
@@ -117,6 +189,8 @@ export function RendererRegl() {
         positionBuffer({ type: 'uint16', usage: 'dynamic', length: simSize * 2 });
         colourArray = new Uint8Array(simSize * 3);
         positionArray = new Uint16Array(simSize * 2);
+        texture.resize(simulationRef.current.width, simulationRef.current.height);
+        framebuffer.resize(simulationRef.current.width, simulationRef.current.height);
       }
 
       // fill the typed arrays with sim data
@@ -136,9 +210,19 @@ export function RendererRegl() {
       positionBuffer.subdata(positionArray.subarray(0, (i + 1) * 2));
 
       // render
-      regl.clear({ color: themeDarkRef.current ? [0, 0, 0, 1] : [1, 1, 1, 1], depth: 1 });
-      // `instances` here is mapped to `instances` on the regl command and tells it how many entries to render from the buffers, so we don't need to worry about clearing old data
-      draw({ instances: i, gridSize: [simulationRef.current.width, simulationRef.current.height] });
+      if (controlsRef.current.bloom) {
+        regl.clear({ color: themeDarkRef.current ? [0, 0, 0, 1] : [1, 1, 1, 1], depth: 1, framebuffer });
+        // `instances` here is mapped to `instances` on the regl command and tells it how many entries to render from the buffers, so we don't need to worry about clearing old data
+        // note that framebuffer is passed as an arg here
+        draw({ instances: i, gridSize: [simulationRef.current.width, simulationRef.current.height], framebuffer });
+
+        regl.clear({ color: themeDarkRef.current ? [0, 0, 0, 1] : [1, 1, 1, 1], depth: 1 });
+        fakeBloom({ gridSize: [simulationRef.current.width, simulationRef.current.height] });
+      } else {
+        // framebuffer: null === canvas
+        regl.clear({ color: themeDarkRef.current ? [0, 0, 0, 1] : [1, 1, 1, 1], depth: 1 });
+        draw({ instances: i, gridSize: [simulationRef.current.width, simulationRef.current.height], framebuffer: null });
+      }
 
       // labels and debug
       if (tick % 10 > 0) return;
@@ -163,6 +247,8 @@ export function RendererRegl() {
 
       if (!labelsRef.current) return;
       // FIXME: this is not very clever. render to a 2d canvas every n frames and push to regl as a texture
+      // or even just render text to a transparent 2d canvas and positiion it over the webgl one
+      // https://webglfundamentals.org/webgl/lessons/webgl-text-canvas2d.html
       (labelsRef.current.children[0] as HTMLSpanElement).innerText = `Step ${steps.toLocaleString()}`;
       (labelsRef.current.children[1] as HTMLSpanElement).innerText = `${Number.isNaN(stepTime) ? '- ' : stepTime.toFixed(1)} ms`;
       (labelsRef.current.children[2] as HTMLSpanElement).innerText = `${frameRate.toFixed(1)} fps`;

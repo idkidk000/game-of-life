@@ -31,10 +31,10 @@ function hash(pattern: string): string {
     u8[i - length] ^= u8[i] * (Math.ceil(i / length / 2) * 2) + 1;
     i--;
   }
-  // @ts-expect-error it does on the client
+  // @ts-expect-error it exists on the client
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toBase64
   const hashed: string = u8.subarray(0, length).toBase64();
-  console.debug({ pattern, hashed });
+  // console.debug({ pattern, hashed });
   return hashed;
 }
 
@@ -56,7 +56,6 @@ export class SimObject implements SimObjectLike {
       const commentMatch = /^#C\s?(?<comment>[^\n]+)$/m.exec(param);
       const patternMatch = /^(?<pattern>[\dbo$\s]+)!/m.exec(param);
       if (!patternMatch?.groups) throw new Error('could not match pattern', { cause: param });
-      console.log(nameMatch?.groups, commentMatch?.groups, patternMatch?.groups);
       const pattern = patternMatch.groups.pattern.replaceAll(/\s/g, '');
 
       let quantifier = '';

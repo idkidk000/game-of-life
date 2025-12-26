@@ -26,7 +26,6 @@ export function Modal({ children, closingMillis = 300 }: { children: ReactNode; 
   const stateRef = useRef(state);
 
   useEffect(() => {
-    // update state into stateRef
     stateRef.current = state;
     // toggle open attrib for styling
     triggerRef.current?.toggleAttribute('open', state === ModalState.Open);

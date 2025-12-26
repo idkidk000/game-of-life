@@ -72,6 +72,7 @@ export function MainMenu() {
             onValueChange={handleSpeedChange}
           />
           <Range label='Scale' title='Simulation scale' min={0.1} max={1} unit='x' value={controls.scale} onValueChange={handleScaleChange} />
+          <Checkbox label='Wrap' title='Wrap coordinates at edges' value={controls.wrap} onValueChange={handleWrapChange} />
           <section className='control-group'>
             <Checkbox label='Spawn' title='Spawn random cells' value={controls.spawn.enabled} onValueChange={handleSpawnEnabledChange} />
             <Range
@@ -109,16 +110,9 @@ export function MainMenu() {
             type='number'
             value={controls.renderer}
           />
-          <Button
-            onClick={handleBloomClick}
-            title='Bloom filter'
-            className={controls.bloom && controls.renderer === Renderer.Canvas2d ? 'bg-accent' : ''}
-            label='Bloom'
-            disabled={controls.renderer !== Renderer.Canvas2d}
-          >
+          <Button onClick={handleBloomClick} title='Bloom filter' className={controls.bloom ? 'bg-accent' : ''} label='Bloom'>
             <LightbulbOn />
           </Button>
-          <Checkbox label='Wrap' title='Wrap coordinates at edges' value={controls.wrap} onValueChange={handleWrapChange} />
           <Button
             type='reset'
             onClick={handleResetClick}

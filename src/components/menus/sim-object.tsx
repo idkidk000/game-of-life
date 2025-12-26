@@ -31,7 +31,7 @@ function SimObjectViewer<T extends string | null | undefined>({
   return (
     <ToolTip title={name ?? 'Unknown'}>
       <span
-        className={`flex flex-col gap-4 items-center justify-center p-4 border-3 max-w-40 overflow-hidden ${(activeSimObject && activeSimObject.id === id) || (!activeSimObject && activeSimObject === id) ? 'border-accent' : 'border-transparent hover:border-accent/50 active:border-accent'}`}
+        className={`flex flex-col gap-4 items-center justify-center p-4 border-3 max-w-40 overflow-hidden transition-[border-color] duration-200 ${(activeSimObject && activeSimObject.id === id) || (!activeSimObject && activeSimObject === id) ? 'border-accent' : 'border-transparent hover:border-accent/50 active:border-accent'}`}
         onClick={handleClick}
       >
         <svg
@@ -46,7 +46,7 @@ function SimObjectViewer<T extends string | null | undefined>({
           <path d={path} />
         </svg>
         <div className='flex flex-col items-center justify-center max-w-full'>
-          <span className='max-w-full truncate text-sm'>{name ?? 'Unknown'}</span>
+          <h3 className='max-w-full truncate text-sm'>{name ?? 'Unknown'}</h3>
           <span className='text-xs'>{width || height ? `${width} x ${height}` : ''}</span>
         </div>
       </span>
@@ -103,8 +103,10 @@ function ImportModalContent() {
   return (
     <ModalContent>
       <div className='flex flex-col gap-4 p-4 items-center'>
-        <span>Import RLE data:</span>
-        <textarea className='w-full lg:max-w-md border-3 border-accent' rows={10} cols={75} ref={textAreaRef} />
+        <h2>Import RLE data:</h2>
+        <ToolTip title='Paste RLE data, e.g. from https://conwaylife.com/'>
+          <textarea className='w-full lg:max-w-md border-3 border-accent' rows={10} cols={75} ref={textAreaRef} />
+        </ToolTip>
         <span className={error ? 'text-red-500' : 'hidden'}>{error}</span>
         <Button label='OK' title='Import' onClick={handleClick}>
           <CardText />

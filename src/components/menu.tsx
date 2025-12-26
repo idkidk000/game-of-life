@@ -31,7 +31,6 @@ export function Menu({ children, closingMillis = 300 }: { children: ReactNode; c
   const stateRef = useRef(state);
 
   useEffect(() => {
-    // update state into stateRef
     stateRef.current = state;
     // toggle open attrib for styling
     triggerRef.current?.toggleAttribute('open', state === MenuState.Open);

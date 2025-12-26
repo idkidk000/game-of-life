@@ -114,7 +114,7 @@
         @apply bg-foreground/10 border-accent;
       }
       &:open,
-      [open] > & {
+      [open] & {
         @apply bg-accent;
       }
     }

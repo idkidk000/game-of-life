@@ -20,10 +20,10 @@ export interface Controls {
 }
 
 export const controlDefaults: Controls = {
-  bloom: false,
+  bloom: true,
   paused: false,
   rules: defaultSimRules,
-  scale: 0.1,
+  scale: 0.3,
   spawn: { ...defaultSimSpawn, enabled: defaultSimSpawn.chance > 0 },
   speed: 1,
   renderer: Renderer.Regl,
