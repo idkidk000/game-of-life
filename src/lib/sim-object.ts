@@ -26,7 +26,7 @@ function hash(pattern: string): string {
   for (const pair of replaced) u8[i++] = parseInt(pair, 16);
   // mult by an odd number and xor backwards until we're < length (very bad, but hopefully not bad enough to be a problem)
   while (i >= length) {
-    u8[Math.floor(i - length)] ^= u8[i] * (Math.ceil(i / length / 2) * 2) + 1;
+    u8[i - length] ^= u8[i] * (Math.ceil(i / length / 2) * 2) + 1;
     i--;
   }
   // @ts-expect-error it does on the client
@@ -63,7 +63,7 @@ export class SimObject implements SimObjectLike {
       for (const token of pattern) {
         if (/\d/.exec(token)) quantifier += token;
         else if (token === '$') {
-          ++y;
+          y += quantifier ? parseInt(quantifier, 10) : 1;
           x = 0;
           quantifier = '';
         } else if (token === 'b') {
@@ -89,10 +89,10 @@ export class SimObject implements SimObjectLike {
       }, { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
 
       this.#comment = commentMatch?.groups?.comment;
-      this.#height = maxY - minY;
+      this.#height = maxY - minY + 1;
       this.#name = nameMatch?.groups?.name;
       this.#points = points;
-      this.#width = maxX - minX;
+      this.#width = maxX - minX + 1;
       this.#id = hash(pattern);
     } else {
       this.#comment = param.comment;

@@ -18,19 +18,16 @@ export function Nav() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleClearClick = useCallback(() => {
     simulationRef.current.clear();
-    if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handlePruneYoungestClick = useCallback(() => {
     simulationRef.current.prune(SimPrune.Youngest);
-    if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handlePruneOldestClick = useCallback(() => {
     simulationRef.current.prune(SimPrune.Oldest);
-    if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
@@ -74,6 +71,7 @@ export function Nav() {
       ['8', () => setControls((prev) => ({ ...prev, scale: 0.8 }))],
       ['9', () => setControls((prev) => ({ ...prev, scale: 0.9 }))],
       ['b', () => setControls((prev) => ({ ...prev, bloom: !prev.bloom }))],
+      ['c', handleClearClick],
       ['d', () => {
         console.debug(...simulationRef.current.values().map(([x, y, age, neighbours]) => ({ x, y, age, neighbours })));
         console.debug(simulationRef.current.inspect());
@@ -81,7 +79,6 @@ export function Nav() {
       ['f', handleFullScreenClick],
       ['o', handlePruneOldestClick],
       ['s', () => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, enabled: !prev.spawn.enabled } }))],
-      ['x', handleClearClick],
       ['y', handlePruneYoungestClick],
     ]);
 
@@ -118,14 +115,14 @@ export function Nav() {
         onClick={handlePausedClick}
         title={controls.paused ? 'Paused' : 'Running'}
         className={controls.paused ? 'animate-pulse' : 'bg-accent'}
-        label='Play'
+        label='Run'
       >
         {controls.paused ? <Pause /> : <Play />}
       </Button>
       <Button onClick={handleStepClick} title='Single step' label='Step'>
         <Next />
       </Button>
-      <Button onClick={handleClearClick} title='Clear simulation' label='Clear'>
+      <Button onClick={handleClearClick} title='Clear simulation' label='Del'>
         <Trash />
       </Button>
       <Button onClick={handleSeedClick} title='Randomise cells' label='Seed'>
@@ -133,7 +130,7 @@ export function Nav() {
       </Button>
       <Menu>
         <MenuTrigger>
-          <Button title='Prune by age' label='Prune'>
+          <Button title='Prune by age' label='Cut'>
             <Cut />
           </Button>
         </MenuTrigger>

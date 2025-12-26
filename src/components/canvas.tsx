@@ -1,10 +1,10 @@
-import { type MouseEvent, type RefObject, useCallback, useLayoutEffect } from 'react';
-import { useControls } from '@/hooks/controls';
+import { type MouseEvent, type RefObject, useCallback, useEffect, useLayoutEffect } from 'react';
+import { Command, useControls } from '@/hooks/controls';
 import { useSimObject } from '@/hooks/sim-object';
 import { useSimulation } from '@/hooks/simulation';
 
 export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | null> }) {
-  const { controls, controlsRef, setControls } = useControls();
+  const { commandsRef, controls, controlsRef, setControls } = useControls();
   const { simulationRef } = useSimulation();
   const { activeSimObjectRef } = useSimObject();
 
@@ -44,7 +44,6 @@ export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | 
     (event: MouseEvent<HTMLCanvasElement>) => {
       if (activeSimObjectRef.current) simulationRef.current.add(...clientXyToSimXy(event), activeSimObjectRef.current);
       else simulationRef.current.spawn(...clientXyToSimXy(event));
-      if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
     },
     [clientXyToSimXy, setControls]
   );
@@ -55,7 +54,6 @@ export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | 
     (event: MouseEvent<HTMLCanvasElement>) => {
       event.preventDefault();
       simulationRef.current.erase(...clientXyToSimXy(event));
-      if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
     },
     [clientXyToSimXy, setControls]
   );
@@ -68,10 +66,27 @@ export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | 
       // disable drag to span when a sim object is active
       if (event.buttons & 0x1 && activeSimObjectRef.current) return;
       simulationRef.current[event.buttons & 0x1 ? 'spawn' : 'erase'](...clientXyToSimXy(event));
-      if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
     },
     [clientXyToSimXy, setControls]
   );
+
+  // save canvas img. for webgl, { preserveDrawingBuffer: true } must be specified in getContext() call
+  // biome-ignore lint/correctness/useExhaustiveDependencies format: ref object and you're bad at formatting
+  useEffect(() =>
+    commandsRef.current.subscribe(Command.Save, () => {
+      if (!canvasRef.current) return;
+      canvasRef.current.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.download = `game-of-life-${new Date().toISOString()}.png`;
+        anchor.href = url;
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      }, 'image/png', 1);
+    }),
+  []);
 
   // overflow hidden is for chromium jank. the canvas cannot and does not overflow.
   return <canvas ref={canvasRef} onMouseMove={handleMouseMove} onClick={handleClick} onContextMenu={handleRightClick} className='overflow-hidden' />;

@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { Canvas } from '@/components/canvas';
-import { Command, useControls } from '@/hooks/controls';
+import { useControls } from '@/hooks/controls';
 import { useSimulation } from '@/hooks/simulation';
 import { useTheme } from '@/hooks/theme';
 import { SlidingWindow } from '@/lib/sliding-window';
 
 export function Renderer2d() {
-  const { commandsRef, controlsRef } = useControls();
+  const { controlsRef } = useControls();
   const { themeDarkRef, themeRef } = useTheme();
   const { simulationRef, stepTimesRef } = useSimulation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -98,24 +98,6 @@ export function Renderer2d() {
 
     return () => controller.abort();
   }, []);
-
-  // save canvas img
-  // biome-ignore lint/correctness/useExhaustiveDependencies format: ref object and you're bad at formatting
-  useEffect(() =>
-      commandsRef.current.subscribe(Command.Save, () => {
-        if (!canvasRef.current) return;
-        canvasRef.current.toBlob((blob) => {
-          if (!blob) return;
-          const url = URL.createObjectURL(blob);
-          const anchor = document.createElement('a');
-          anchor.download = `game-of-life-${new Date().toISOString()}.png`;
-          anchor.href = url;
-          anchor.click();
-          anchor.remove();
-          URL.revokeObjectURL(url);
-        }, 'image/png', 1);
-      }),
-    []);
 
   return <Canvas ref={canvasRef} />;
 }

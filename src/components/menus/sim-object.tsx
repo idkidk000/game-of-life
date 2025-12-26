@@ -32,7 +32,7 @@ function SimObjectViewer<T extends string | null | undefined>({
       onClick={handleClick}
       title={name}
     >
-      <svg fill='currentColor' stroke='currentColor' strokeLinecap='square' strokeWidth='1' viewBox={`0 0 ${width} ${height}`} className='h-12 max-w-full'>
+      <svg fill='currentColor' stroke='currentColor' strokeLinecap='square' strokeWidth='0' viewBox={`0 0 ${width} ${height}`} className='h-12 max-w-full'>
         <title>{`${name} preview`}</title>
         {points.map(([x, y]) => (
           <rect key={`${x},${y}`} x={x} y={y} width='1' height='1' />
@@ -67,7 +67,7 @@ function ImportModalContent() {
   const { setClosed, state } = useModal();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const { addSimObject } = useSimObject();
+  const { addSimObject, setActiveSimObject } = useSimObject();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate
   useEffect(() => {
@@ -81,13 +81,14 @@ function ImportModalContent() {
     try {
       const item = new SimObject(textAreaRef.current.value);
       addSimObject(item);
+      setActiveSimObject(item);
       textAreaRef.current.value = '';
       setError(null);
       setClosed();
     } catch (err) {
       setError(String(err));
     }
-  }, [setClosed, addSimObject]);
+  }, [setClosed, addSimObject, setActiveSimObject]);
 
   return (
     <ModalContent>

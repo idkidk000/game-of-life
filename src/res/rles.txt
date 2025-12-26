@@ -37,7 +37,6 @@ x = 7, y = 5, rule = B3/S23
 x = 9, y = 9, rule = B3/S23
 b2o2bob2o$o2bo2b2o$bobo$2bo$8bo$6b3o$5bo$6bo$7b2o!
 
-// BUG: broken. parse error maybe?
 #N Copperhead
 #O 'zdr'
 #C An c/10 orthogonal spaceship found on March 5, 2016.
@@ -45,7 +44,6 @@ b2o2bob2o$o2bo2b2o$bobo$2bo$8bo$6b3o$5bo$6bo$7b2o!
 x = 8, y = 12, rule = B3/S23
 b2o2b2o$3b2o$3b2o$obo2bobo$o6bo2$o6bo$b2o2b2o$2b4o2$3b2o$3b2o!
 
-// BUG: broken. parse error maybe?
 #N Crab
 #O Jason Summers
 #C The smallest known diagonal spaceship other than the glider. Period 4 with speed c/4. It was
@@ -71,7 +69,6 @@ x = 36, y = 9, rule = B3/S23
 24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4b
 obo$10bo5bo7bo$11bo3bo$12b2o!
 
-// BUG: broken. parse error maybe?
 #N Spaghetti monster
 #O Tim Coe
 #C The first 3c/7 orthogonal spaceship to be discovered.

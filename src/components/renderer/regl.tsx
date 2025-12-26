@@ -30,7 +30,10 @@ export function RendererRegl() {
     // https://github.com/regl-project/regl/blob/gh-pages/API.md
     // https://github.com/regl-project/regl/tree/gh-pages/example
     // `angle_instanced_arrays` is for instancing. `EXT_disjoint_timer_query` is for profiling during dev https://github.com/regl-project/regl/blob/main/API.md#profiling but it doesn't work
-    const regl = REGL({ canvas: canvasRef.current, extensions: ['angle_instanced_arrays'] });
+    // { preserveDrawingBuffer: true } is required to make canvas.toBlob() work
+    const gl = canvasRef.current.getContext('webgl', { preserveDrawingBuffer: true });
+    if (!gl) return;
+    const regl = REGL({ gl, extensions: ['angle_instanced_arrays'] });
 
     let simSize = simulationRef.current.size;
     // usage: 'dynamic' is for write many, though all values work so this is probably a compiler hint
