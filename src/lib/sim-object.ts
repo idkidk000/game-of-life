@@ -1,5 +1,6 @@
 // https://conwaylife.com/wiki/RLE
 
+import { pointsToPath } from '@/lib/utils';
 import rles from '@/res/rles.txt?raw';
 
 export interface SimObjectLike {
@@ -9,6 +10,7 @@ export interface SimObjectLike {
   points: [x: number, y: number][];
   width: number;
   id: string;
+  path: string;
 }
 
 // there are no clientside synchronous hashing apis
@@ -43,6 +45,7 @@ export class SimObject implements SimObjectLike {
   #comment?: string;
   #points: [x: number, y: number][];
   #id: string;
+  #path: string;
   constructor(object: SimObjectLike);
   constructor(rleString: string);
   constructor(param: SimObjectLike | string) {
@@ -94,6 +97,7 @@ export class SimObject implements SimObjectLike {
       this.#points = points;
       this.#width = maxX - minX + 1;
       this.#id = hash(pattern);
+      this.#path = pointsToPath(points);
     } else {
       this.#comment = param.comment;
       this.#height = param.height;
@@ -101,6 +105,7 @@ export class SimObject implements SimObjectLike {
       this.#points = param.points;
       this.#width = param.width;
       this.#id = param.id;
+      this.#path = param.path;
     }
   }
   get width() {
@@ -121,6 +126,9 @@ export class SimObject implements SimObjectLike {
   get id() {
     return this.#id;
   }
+  get path() {
+    return this.#path;
+  }
   toJSON(): SimObjectLike {
     return {
       comment: this.#comment,
@@ -129,6 +137,7 @@ export class SimObject implements SimObjectLike {
       points: this.#points,
       width: this.#width,
       id: this.#id,
+      path: this.#path,
     };
   }
 }

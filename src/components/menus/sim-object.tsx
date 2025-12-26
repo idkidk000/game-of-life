@@ -7,20 +7,21 @@ import { useControls } from '@/hooks/controls';
 import { useSimObject } from '@/hooks/sim-object';
 import { ToolTip } from '@/hooks/tooltip';
 import { SimObject } from '@/lib/sim-object';
+import { pointsToPath } from '@/lib/utils';
 
 function SimObjectViewer<T extends string | null | undefined>({
   name,
   id,
   width,
   height,
-  points,
+  path,
   onClick,
 }: {
   name?: string;
   id: T;
   width: number;
   height: number;
-  points: [x: number, y: number][];
+  path: string;
   onClick?: (id: T) => unknown;
 }) {
   const { activeSimObject } = useSimObject();
@@ -38,13 +39,11 @@ function SimObjectViewer<T extends string | null | undefined>({
           fill='currentColor'
           stroke='currentColor'
           strokeLinecap='square'
-          strokeWidth='0'
-          viewBox={`0 0 ${width} ${height}`}
+          strokeWidth='1'
+          viewBox={`-0.5 -0.5 ${width} ${height}`}
           className='h-12 max-w-full'
         >
-          {points.map(([x, y]) => (
-            <rect key={`${x},${y}`} x={x} y={y} width='1' height='1' />
-          ))}
+          <path d={path} />
         </svg>
         <div className='flex flex-col items-center justify-center max-w-full'>
           <span className='max-w-full truncate text-sm'>{name ?? 'Unknown'}</span>
@@ -71,6 +70,8 @@ function makeRandomPoints(radius: number) {
 const importPoints: [x: number, y: number][] = [
   [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [3, 0], [3, 1], [3, 2], [3, 4], [3, 5], [3, 6]
 ];
+
+const importPath = pointsToPath(importPoints);
 
 function ImportModalContent() {
   const { setClosed, state } = useModal();
@@ -124,7 +125,7 @@ export function SimObjectMenu() {
 
   const handleNoiseClick = useCallback(() => setActiveSimObject(null), [setActiveSimObject]);
 
-  const randomPoints = useMemo(() => makeRandomPoints(controls.spawn.radius), [controls.spawn.radius]);
+  const randomPath = useMemo(() => pointsToPath(makeRandomPoints(controls.spawn.radius)), [controls.spawn.radius]);
 
   return (
     <Menu>
@@ -144,7 +145,7 @@ export function SimObjectMenu() {
             <SimObjectViewer
               height={controls.spawn.radius * 2}
               id={null}
-              points={randomPoints}
+              path={randomPath}
               width={controls.spawn.radius * 2}
               name='Noise'
               onClick={handleNoiseClick}
@@ -152,7 +153,7 @@ export function SimObjectMenu() {
           </MenuClose>
           <Modal>
             <ModalTrigger>
-              <SimObjectViewer height={7} id={undefined} points={importPoints} width={7} name='Import RLE' />
+              <SimObjectViewer height={7} id={undefined} path={importPath} width={7} name='Import RLE' />
             </ModalTrigger>
             <ImportModalContent />
           </Modal>

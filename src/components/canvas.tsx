@@ -43,7 +43,7 @@ export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | 
   const handleClick = useCallback(
     (event: MouseEvent<HTMLCanvasElement>) => {
       if (activeSimObjectRef.current) simulationRef.current.add(...clientXyToSimXy(event), activeSimObjectRef.current);
-      else simulationRef.current.spawn(...clientXyToSimXy(event));
+      else simulationRef.current.add(...clientXyToSimXy(event));
     },
     [clientXyToSimXy, setControls]
   );
@@ -65,7 +65,7 @@ export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | 
       if (!event.buttons) return;
       // disable drag to span when a sim object is active
       if (event.buttons & 0x1 && activeSimObjectRef.current) return;
-      simulationRef.current[event.buttons & 0x1 ? 'spawn' : 'erase'](...clientXyToSimXy(event));
+      simulationRef.current[event.buttons & 0x1 ? 'add' : 'erase'](...clientXyToSimXy(event));
     },
     [clientXyToSimXy, setControls]
   );

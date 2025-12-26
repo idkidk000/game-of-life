@@ -44,13 +44,15 @@ export class Simulation {
   #survive = 0;
   #spawn: SimSpawn = { ...defaultSimSpawn };
   #alive = 0;
-  constructor(width: number, height: number, rules: SimRules = defaultSimRules, spawn: SimSpawn = defaultSimSpawn) {
+  #wrap: boolean;
+  constructor(width: number, height: number, rules: SimRules = defaultSimRules, spawn: SimSpawn = defaultSimSpawn, wrap = true) {
     this.#width = width;
     this.#height = height;
     this.#current = new Uint16Array(width * height);
     this.#next = new Uint16Array(width * height);
-    this.updateSpawn(spawn);
-    this.updateRules(rules);
+    this.spawn = spawn;
+    this.rules = rules;
+    this.#wrap = wrap;
   }
   get width() {
     return this.#width;
@@ -67,12 +69,34 @@ export class Simulation {
   get alive() {
     return this.#alive;
   }
+  get wrap() {
+    return this.#wrap;
+  }
+  get spawn() {
+    return { ...this.#spawn };
+  }
+  set rules({ born, survive }: SimRules) {
+    this.#born = (born as number[]).reduce((acc, item) => acc | (1 << item), 0);
+    this.#survive = (survive as number[]).reduce((acc, item) => acc | (1 << item), 0);
+  }
+  set spawn(config: SimSpawn) {
+    this.#spawn = { ...config };
+  }
+  set wrap(wrap: boolean) {
+    this.#wrap = wrap;
+  }
   #indexToXy(index: number): [x: number, y: number] {
     const y = Math.floor(index / this.#width);
     const x = index - y * this.#width;
     return [x, y];
   }
+  /** **note**: this returns -1 for oob when wrap is disabled
+   *
+   * `typedArray[-1] = value` fails silently\
+   * `typedArray[-1]` returns `undefined`
+   */
   #xyToIndex(x: number, y: number): number {
+    if (!this.#wrap && (x < 0 || x >= this.#width || y < 0 || y >= this.height)) return -1;
     return (
       (y < 0 ? this.#height + y : y >= this.#height ? this.#height - y : y) * this.#width + (x < 0 ? this.#width + x : x >= this.#width ? this.#width - x : x)
     );
@@ -90,13 +114,6 @@ export class Simulation {
     array[this.#xyToIndex(x - 1, y + 0)] += value;
     array[this.#xyToIndex(x - 1, y + 1)] += value;
   }
-  updateRules({ born, survive }: SimRules) {
-    this.#born = (born as number[]).reduce((acc, item) => acc | (1 << item), 0);
-    this.#survive = (survive as number[]).reduce((acc, item) => acc | (1 << item), 0);
-  }
-  updateSpawn(config: SimSpawn) {
-    this.#spawn = { ...config };
-  }
   updateSize(width: number, height: number): void {
     if (width < 10) width = 10;
     if (height < 10) height = 10;
@@ -105,10 +122,10 @@ export class Simulation {
     for (let i = 0; i < resized.length; ++i) {
       const resizedX = i % width;
       const resizedY = Math.floor(i / width);
-      const prevX = Math.round((resizedX / width) * this.#width);
-      const prevY = Math.round((resizedY / height) * this.#height);
-      const prevIndex = this.#xyToIndex(prevX, prevY);
-      resized[i] = this.#current[prevIndex];
+      const prevX = Math.round(this.#width / 2 - width / 2) + resizedX;
+      const prevY = Math.round(this.#height / 2 - height / 2) + resizedY;
+      if (prevX < 0 || prevX >= this.#width || prevY < 0 || prevY >= this.#height) continue;
+      resized[i] = this.#current[this.#xyToIndex(prevX, prevY)];
     }
     this.#width = width;
     this.#height = height;
@@ -122,18 +139,6 @@ export class Simulation {
   seed(): void {
     // set a random neighbour count
     for (let i = 0; i < this.#current.length; ++i) this.#current[i] = (this.#current[i] & 0xff0) | Math.round(Math.random() * 8);
-  }
-  spawn(x: number, y: number): void {
-    console.debug('spawn', { x, y });
-    const radius2 = this.#spawn.radius ** 2;
-    for (let rx = -this.#spawn.radius; rx <= this.#spawn.radius; ++rx)
-      for (let ry = -this.#spawn.radius; ry <= this.#spawn.radius; ++ry) {
-        const dist2 = rx ** 2 + ry ** 2;
-        if (dist2 > radius2) continue;
-        const index = this.#xyToIndex(rx + x, ry + y);
-        // set a random neighbour count
-        this.#current[index] = (this.#current[index] & 0xff0) | Math.round(Math.random() * 8);
-      }
   }
   /** remove by coordinate */
   erase(x: number, y: number): void {
@@ -167,20 +172,34 @@ export class Simulation {
       this.#updateNeighbours(this.#current, i, -1);
     }
   }
-  /** add a sim object */
-  add(x: number, y: number, object: SimObjectLike) {
-    console.debug('add', object.name, { x, y });
-    const halfW = Math.round(object.width / 2);
-    const halfH = Math.round(object.height / 2);
-    // clear cells badly (border neighbours will still see them alive until next step)
-    for (let ox = -3; ox < object.width + 3; ++ox)
-      for (let oy = -3; oy < object.height + 3; ++oy) this.#current[this.#xyToIndex(x - halfW + ox, y - halfH + oy)] = 0;
-    for (const [ox, oy] of object.points) {
-      const [cx, cy] = [x - halfW + ox, y - halfH + oy];
-      const index = this.#xyToIndex(cx, cy);
-      // set alive
-      this.#current[index] = 0x10 | (this.#current[index] & 0xf);
-      this.#updateNeighbours(this.#current, [cx, cy], 1);
+  /** add a sim object or noise */
+  add(x: number, y: number, object?: SimObjectLike) {
+    if (object) {
+      console.debug('add', object.name, { x, y });
+      const halfW = Math.round(object.width / 2);
+      const halfH = Math.round(object.height / 2);
+      // clear cells badly (border neighbours will still see them alive until next step)
+      for (let ox = -3; ox < object.width + 3; ++ox)
+        for (let oy = -3; oy < object.height + 3; ++oy) this.#current[this.#xyToIndex(x - halfW + ox, y - halfH + oy)] = 0;
+      for (const [ox, oy] of object.points) {
+        const [cx, cy] = [x - halfW + ox, y - halfH + oy];
+        const index = this.#xyToIndex(cx, cy);
+        if (index === -1) continue;
+        // set alive
+        this.#current[index] = 0x10 | (this.#current[index] & 0xf);
+        this.#updateNeighbours(this.#current, [cx, cy], 1);
+      }
+    } else {
+      console.debug('add noise', { x, y });
+      const radius2 = this.#spawn.radius ** 2;
+      for (let rx = -this.#spawn.radius; rx <= this.#spawn.radius; ++rx)
+        for (let ry = -this.#spawn.radius; ry <= this.#spawn.radius; ++ry) {
+          const dist2 = rx ** 2 + ry ** 2;
+          if (dist2 > radius2) continue;
+          const index = this.#xyToIndex(rx + x, ry + y);
+          // set a random neighbour count
+          this.#current[index] = (this.#current[index] & 0xff0) | Math.round(Math.random() * 8);
+        }
     }
   }
   /** @returns performance duration in whole millis since we don't have high precision timers on the client */
@@ -190,7 +209,7 @@ export class Simulation {
     const started = performance.now();
     for (let iteration = 0; iteration < count; ++iteration) {
       // outside of the loop so we don't interfere with neighbour count incrementing
-      if (this.#spawn.chance / 100 >= Math.random()) this.spawn(...this.#indexToXy(Math.round(Math.random() * this.#current.length)));
+      if (this.#spawn.chance / 100 >= Math.random()) this.add(...this.#indexToXy(Math.round(Math.random() * this.#current.length)));
       this.#alive = 0;
       // simulation loop
       for (let i = 0; i < this.#current.length; ++i) {
@@ -224,7 +243,7 @@ export class Simulation {
       width: this.#width,
       height: this.#height,
       steps: this.#steps,
-      alive: this.#current.filter((item) => item & 0xff0).length,
+      alive: this.#alive,
     };
   }
 }

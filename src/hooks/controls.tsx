@@ -16,6 +16,7 @@ export interface Controls {
   spawn: SimSpawn & { enabled: boolean };
   speed: number;
   renderer: Renderer;
+  wrap: boolean;
 }
 
 export const controlDefaults: Controls = {
@@ -26,6 +27,7 @@ export const controlDefaults: Controls = {
   spawn: { ...defaultSimSpawn, enabled: defaultSimSpawn.chance > 0 },
   speed: 1,
   renderer: Renderer.Regl,
+  wrap: true,
 };
 
 export enum Command {

@@ -49,6 +49,8 @@ export function MainMenu() {
 
   const handleHueChange = useCallback((hue: number) => setTheme((prev) => ({ ...prev, hue })), [setTheme]);
 
+  const handleWrapChange = useCallback((wrap: boolean) => setControls((prev) => ({ ...prev, wrap })), [setControls]);
+
   return (
     <Menu>
       <MenuTrigger>
@@ -116,6 +118,7 @@ export function MainMenu() {
           >
             <LightbulbOn />
           </Button>
+          <Checkbox label='Wrap' title='Wrap coordinates at edges' value={controls.wrap} onValueChange={handleWrapChange} />
           <Button
             type='reset'
             onClick={handleResetClick}

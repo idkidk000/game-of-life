@@ -12,20 +12,24 @@ const Context = createContext<Context | null>(null);
 
 export function SimulationProvider({ children }: { children: ReactNode }) {
   const { controls } = useControls();
-  const simulationRef = useRef(new Simulation(10, 10, controls.rules, controls.spawn));
+  const simulationRef = useRef(new Simulation(10, 10, controls.rules, controls.spawn, controls.wrap));
   const stepTimesRef = useRef(new SlidingWindow<number>(100));
 
   const contextValue: Context = useMemo(() => ({ simulationRef, stepTimesRef }), []);
 
   // spawn
   useEffect(() => {
-    simulationRef.current.updateSpawn({ ...controls.spawn, chance: controls.spawn.enabled ? controls.spawn.chance : 0 });
+    simulationRef.current.spawn = { ...controls.spawn, chance: controls.spawn.enabled ? controls.spawn.chance : 0 };
   }, [controls.spawn]);
 
   // rules
   useEffect(() => {
-    simulationRef.current.updateRules(controls.rules as SimRules);
+    simulationRef.current.rules = controls.rules as SimRules;
   }, [controls.rules]);
+
+  useEffect(() => {
+    simulationRef.current.wrap = controls.wrap;
+  }, [controls.wrap]);
 
   return <Context value={contextValue}>{children}</Context>;
 }
