@@ -112,6 +112,7 @@ export function ModalContent({
   useEffect(() => {
     if (state === ModalState.Open) modalRef.current?.showModal();
     if (state === ModalState.Closed) modalRef.current?.close();
+    modalRef.current?.setAttribute('open', String(state === ModalState.Open));
   }, [state]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object

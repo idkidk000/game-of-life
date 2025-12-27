@@ -53,7 +53,7 @@ interface Theme {
 
 const defaultTheme: Theme = {
   colour: 'indigo',
-  hue: 180,
+  hue: 250,
   preference: ThemePreference.Dark,
 };
 

@@ -27,8 +27,8 @@ export function pointsToPath(points: [x: number, y: number][]): string {
     .map(([x, y], i, arr) => {
       const prev = arr[i - 1];
       // https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/d#path_commands
-      if (prev) return `m${x - prev[0]},${y - prev[1]}l0,0`;
-      return `M${x},${y}l0,0`;
+      if (prev) return `m${x - prev[0]},${y - prev[1]}h0`;
+      return `M${x},${y}h0`;
     })
     .join('');
 }

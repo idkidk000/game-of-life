@@ -1,5 +1,5 @@
 import { type ChangeEvent, type MouseEvent, useCallback, useId, useRef } from 'react';
-import { ToolTip } from '@/hooks/tooltip';
+import { ToolTip } from '@/components/tooltip';
 
 export function Select<Value extends string | number>({
   onValueChange,

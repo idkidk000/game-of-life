@@ -138,6 +138,7 @@ export function MenuContent({
   useEffect(() => {
     if (state === MenuState.Open) ref.current?.showPopover();
     if (state === MenuState.Closed) ref.current?.hidePopover();
+    ref.current?.setAttribute('open', String(state === MenuState.Open));
   }, [state]);
 
   useEffect(() => {

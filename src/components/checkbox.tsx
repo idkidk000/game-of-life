@@ -1,5 +1,5 @@
 import { type ChangeEvent, useCallback, useId } from 'react';
-import { ToolTip } from '@/hooks/tooltip';
+import { ToolTip } from '@/components/tooltip';
 
 export function Checkbox({ label, value, onValueChange, title }: { label: string; value: boolean; onValueChange: (value: boolean) => unknown; title: string }) {
   const id = useId();

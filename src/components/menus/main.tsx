@@ -19,19 +19,19 @@ export function MainMenu() {
 
   const handleSpawnEnabledChange = useCallback((enabled: boolean) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, enabled } })), [setControls]);
 
-  const handleScaleChange = useCallback((scale: number) => setControls((prev) => ({ ...prev, scale, paused: false })), [setControls]);
+  const handleScaleChange = useCallback((scale: number) => setControls((prev) => ({ ...prev, scale })), [setControls]);
 
   // biome-ignore format: do not
   const handleSpawnRadiusChange = useCallback(
-    (radius: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, radius }, paused: false })),
+    (radius: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, radius } })),
   [setControls] );
 
   // biome-ignore format: do not
   const handleSpawnChanceChange = useCallback(
-    (chance: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, chance }, paused: false })),
+    (chance: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, chance } })),
   [setControls]);
 
-  const handleSpeedChange = useCallback((speed: number) => setControls((prev) => ({ ...prev, speed, paused: false })), [setControls]);
+  const handleSpeedChange = useCallback((speed: number) => setControls((prev) => ({ ...prev, speed })), [setControls]);
 
   const handleRulesChange = useCallback((rules: ControlsType['rules']) => setControls((prev) => ({ ...prev, rules })), [setControls]);
 

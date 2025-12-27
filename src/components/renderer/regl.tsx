@@ -9,8 +9,10 @@ import { SlidingWindow } from '@/lib/sliding-window';
 
 interface DynamicProps {
   gridSize: [x: number, y: number];
+  canvasSize: [x: number, y: number];
   instances: number;
   framebuffer: REGL.Framebuffer2D | null;
+  background: [r: number, g: number, b: number, a: number];
 }
 
 // https://github.com/regl-project/regl/blob/gh-pages/API.md
@@ -41,11 +43,11 @@ export function RendererRegl() {
     let colourArray = new Uint8Array(simSize * 3);
     let positionArray = new Uint16Array(simSize * 2);
 
-    // in fake bloom, `draw` renders to `framebuffer` which uses this. then `fakeBloom` reads this as a texture and blurs it badly
+    // in bloom, `draw` renders to `framebuffer` which uses this. then `bloom` reads this as a texture and blurs it badly
     const texture = regl.texture({
       width: simulationRef.current.width,
       height: simulationRef.current.height,
-      format: 'rgb',
+      format: 'rgba',
     });
     const framebuffer = regl.framebuffer({ color: texture, stencil: false });
 
@@ -112,56 +114,60 @@ export function RendererRegl() {
     });
 
     // i lack the skills to do it properly
-    const fakeBloom = regl({
+    const bloom = regl({
       // renders a quad which fills the whole screen and passes uv coords to the frag shader for texture lookup
       vert: `
+        #pragma vscode_glsllint_stage : vert
         precision mediump float;
         varying vec2 uv;
         attribute vec2 verts;
+
         void main() {
           uv = verts * 0.5 + 0.5;
           gl_Position = vec4(verts, 0, 1);
         }
       `,
-      // run per pixel. looks up texture using uv from vertex shader
+      // run per pixel
       frag: `
+        #pragma vscode_glsllint_stage : frag
         precision lowp float;
+
         uniform lowp sampler2D texture;
-        uniform vec2 gridSize;
+        uniform vec2 canvasSize;
+        uniform vec4 background;
+
         varying vec2 uv;
 
+        // pow doesn't work with ints
+        const float radius = 6.0;
+        float maxR2 = pow(radius, 2.0);
+
         void main() {
-          // vec2 cell = vec2(1, 1) / gridSize;
-          float cx=1.0/gridSize.x;
-          float cy=1.0/gridSize.y;
+          // actually 2 pixels
+          vec2 pixel = vec2(1, 1) / canvasSize * 2.0;
+          vec4 colour = texture2D(texture, uv);
 
-          vec3 color = texture2D(texture, uv).rgb * 0.5;
+          // loop over neighbours, exclude by r2, add their colour multiplied by falloff
+          for (float x = -radius; x <= radius; x++) {
+            for (float y = -radius; y <= radius; y++) {
+              float r2 = pow(x, 2.0) + pow(y, 2.0);
+              if (r2 > maxR2) continue;
+              vec4 pointColour = texture2D(texture, uv + (vec2(x, y) * pixel));
 
-          // don't look at this bit
-          color += texture2D(texture, uv + vec2(  0,-cy)).rgb * 0.1;
-          color += texture2D(texture, uv + vec2( cx,-cy)).rgb * 0.1;
-          color += texture2D(texture, uv + vec2( cx,  0)).rgb * 0.1;
-          color += texture2D(texture, uv + vec2( cx, cy)).rgb * 0.1;
-          color += texture2D(texture, uv + vec2(  0, cy)).rgb * 0.1;
-          color += texture2D(texture, uv + vec2(-cx, cy)).rgb * 0.1;
-          color += texture2D(texture, uv + vec2(-cx,  0)).rgb * 0.1;
-          color += texture2D(texture, uv + vec2(-cx,-cy)).rgb * 0.1;
+              // playing with falloff
+              // colour += pointColour / maxR2 * (maxR2 - r2) * 0.05;
+              colour += pointColour * pow((maxR2 - r2) / maxR2, 4.0) * 0.05;
+            }
+          }
 
-          color += texture2D(texture, uv + vec2(  0,-cy)*0.5).rgb * 0.1;
-          color += texture2D(texture, uv + vec2( cx,-cy)*0.5).rgb * 0.1;
-          color += texture2D(texture, uv + vec2( cx,  0)*0.5).rgb * 0.1;
-          color += texture2D(texture, uv + vec2( cx, cy)*0.5).rgb * 0.1;
-          color += texture2D(texture, uv + vec2(  0, cy)*0.5).rgb * 0.1;
-          color += texture2D(texture, uv + vec2(-cx, cy)*0.5).rgb * 0.1;
-          color += texture2D(texture, uv + vec2(-cx,  0)*0.5).rgb * 0.1;
-          color += texture2D(texture, uv + vec2(-cx,-cy)*0.5).rgb * 0.1;
-
-          gl_FragColor = vec4(color, 1);
+          // add in background and remove opacity
+          gl_FragColor = vec4(colour.rgb + background.rgb * (1.0 - colour.a), 1);
         }
       `,
       uniforms: {
         texture,
-        gridSize: regl.prop<DynamicProps, 'gridSize'>('gridSize'),
+        canvasSize: regl.prop<DynamicProps, 'canvasSize'>('canvasSize'),
+        background: regl.prop<DynamicProps, 'background'>('background'),
       },
       attributes: {
         verts: [
@@ -180,6 +186,7 @@ export function RendererRegl() {
     regl.frame(({ tick, time }) => {
       frameTimes.push(time);
       if (!controlsRef.current.paused) stepTimesRef.current.push(simulationRef.current.step(controlsRef.current.speed));
+      if (!canvasRef.current) return;
 
       // recreate buffers on sim size change
       if (simulationRef.current.size !== simSize) {
@@ -211,16 +218,18 @@ export function RendererRegl() {
 
       // render
       if (controlsRef.current.bloom) {
-        regl.clear({ color: themeDarkRef.current ? [0, 0, 0, 1] : [1, 1, 1, 1], depth: 1, framebuffer });
-        // `instances` here is mapped to `instances` on the regl command and tells it how many entries to render from the buffers, so we don't need to worry about clearing old data
-        // note that framebuffer is passed as an arg here
+        // clear framebuffer to transparent black to avoid interfering with colour mixing
+        regl.clear({ color: [0, 0, 0, 0], depth: 1, framebuffer });
+        // draw to framebuffer
         draw({ instances: i, gridSize: [simulationRef.current.width, simulationRef.current.height], framebuffer });
-
-        regl.clear({ color: themeDarkRef.current ? [0, 0, 0, 1] : [1, 1, 1, 1], depth: 1 });
-        fakeBloom({ gridSize: [simulationRef.current.width, simulationRef.current.height] });
+        // clear the canvas. any colour will do. but we have to clear it
+        regl.clear({ color: [0, 0, 0, 0], depth: 1 });
+        // render framebuffer to canvas. background and canvas size (for calculating pixel size) are passed as uniforms
+        bloom({ canvasSize: [canvasRef.current.width, canvasRef.current.height], background: themeDarkRef.current ? [0, 0, 0, 1] : [1, 1, 1, 1] });
       } else {
         // framebuffer: null === canvas
         regl.clear({ color: themeDarkRef.current ? [0, 0, 0, 1] : [1, 1, 1, 1], depth: 1 });
+        // instances tells the shader how many instances to render from the buffers. which gets around the problem of them potentially containing old data beyond where we've written in this pass
         draw({ instances: i, gridSize: [simulationRef.current.width, simulationRef.current.height], framebuffer: null });
       }
 
