@@ -51,7 +51,7 @@ interface Theme {
   hue: number;
 }
 
-const defaultTheme: Theme = {
+export const defaultTheme: Theme = {
   colour: 'indigo',
   hue: 250,
   preference: ThemePreference.Dark,

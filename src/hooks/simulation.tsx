@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, type RefObject, useContext, useEffect, useMemo, useRef } from 'react';
-import { useControls } from '@/hooks/controls';
+import { useSimControls } from '@/hooks/sim-controls';
 import { type SimRules, Simulation } from '@/lib/simulation';
 import { SlidingWindow } from '@/lib/sliding-window';
 
@@ -11,7 +11,7 @@ interface Context {
 const Context = createContext<Context | null>(null);
 
 export function SimulationProvider({ children }: { children: ReactNode }) {
-  const { controls } = useControls();
+  const { controls } = useSimControls();
   const simulationRef = useRef(new Simulation(10, 10, controls.rules, controls.spawn, controls.wrap));
   const stepTimesRef = useRef(new SlidingWindow<number>(100));
 

@@ -4,19 +4,14 @@ import { Checkbox } from '@/components/checkbox';
 import { Menu, MenuContent, MenuTrigger } from '@/components/menu';
 import { Range } from '@/components/range';
 import { Rules } from '@/components/rules';
-import { Select } from '@/components/select';
-import { LightbulbOn, Menu as MenuIcon, Monitor, Moon, SunAlt, Undo } from '@/generated/icons';
-import { type Controls as ControlsType, controlDefaults, Renderer, useControls } from '@/hooks/controls';
-import { type ThemeColour, ThemePreference, themeColours, useTheme } from '@/hooks/theme';
+import { Menu as MenuIcon, Undo } from '@/generated/icons';
+import { type Controls as ControlsType, controlDefaults, useSimControls } from '@/hooks/sim-controls';
 import { objectIsEqual, omit } from '@/lib/utils';
 
 export function MainMenu() {
-  const { setControls, controls } = useControls();
-  const { theme, setTheme } = useTheme();
+  const { setControls, controls } = useSimControls();
 
   // states
-  const handleBloomClick = useCallback(() => setControls((prev) => ({ ...prev, bloom: !prev.bloom })), [setControls]);
-
   const handleSpawnEnabledChange = useCallback((enabled: boolean) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, enabled } })), [setControls]);
 
   const handleScaleChange = useCallback((scale: number) => setControls((prev) => ({ ...prev, scale })), [setControls]);
@@ -37,24 +32,12 @@ export function MainMenu() {
 
   const handleResetClick = useCallback(() => setControls(() => ({ ...controlDefaults })), [setControls]);
 
-  // biome-ignore format: do not
-  const handleThemePreferenceClick = useCallback(() => setTheme(({preference,...prev}) => ({
-    ...prev,
-    preference: preference === ThemePreference.Auto ? ThemePreference.Dark : preference === ThemePreference.Dark ? ThemePreference.Light : ThemePreference.Auto
-  })), [setTheme]);
-
-  const handleRendererChange = useCallback((renderer: number) => setControls((prev) => ({ ...prev, renderer })), [setControls]);
-
-  const handleThemeColourChange = useCallback((colour: ThemeColour) => setTheme((prev) => ({ ...prev, colour })), [setTheme]);
-
-  const handleHueChange = useCallback((hue: number) => setTheme((prev) => ({ ...prev, hue })), [setTheme]);
-
   const handleWrapChange = useCallback((wrap: boolean) => setControls((prev) => ({ ...prev, wrap })), [setControls]);
 
   return (
     <Menu>
       <MenuTrigger>
-        <Button title='Menu' label='Menu'>
+        <Button title='Main menu' label='Menu'>
           <MenuIcon />
         </Button>
       </MenuTrigger>
@@ -100,19 +83,6 @@ export function MainMenu() {
             />
           </section>
           <Rules onValueChange={handleRulesChange} values={controls.rules} />
-          <Select
-            label='Renderer'
-            onValueChange={handleRendererChange}
-            options={Object.entries(Renderer)
-              .map(([key, label]) => ({ key: Number(key), label: String(label) }))
-              .filter(({ key }) => !Number.isNaN(key))}
-            title='Type of canvas renderer to use'
-            type='number'
-            value={controls.renderer}
-          />
-          <Button onClick={handleBloomClick} title='Bloom filter' className={controls.bloom ? 'bg-accent' : ''} label='Bloom'>
-            <LightbulbOn />
-          </Button>
           <Button
             type='reset'
             onClick={handleResetClick}
@@ -122,22 +92,6 @@ export function MainMenu() {
           >
             <Undo />
           </Button>
-          <Select
-            label='Colour'
-            onValueChange={handleThemeColourChange}
-            options={themeColours.map((colour) => ({ key: colour, label: `${colour[0].toLocaleUpperCase()}${colour.slice(1)}` }))}
-            title='Select theme colour'
-            type='string'
-            value={theme.colour}
-          />
-          <Button
-            onClick={handleThemePreferenceClick}
-            title={theme.preference === ThemePreference.Dark ? 'Dark' : theme.preference === ThemePreference.Light ? 'Light' : 'System'}
-            label='Theme'
-          >
-            {theme.preference === ThemePreference.Dark ? <Moon /> : theme.preference === ThemePreference.Light ? <SunAlt /> : <Monitor />}
-          </Button>
-          <Range min={0} max={359} step={0} decimals={0} label='Hue' title='Hue offset' value={theme.hue} unit='°' onValueChange={handleHueChange} />
         </div>
       </MenuContent>
     </Menu>

@@ -33,7 +33,7 @@ export function Menu({ children, closingMillis = 300 }: { children: ReactNode; c
   useEffect(() => {
     stateRef.current = state;
     // toggle open attrib for styling
-    triggerRef.current?.toggleAttribute('open', state === MenuState.Open);
+    triggerRef.current?.setAttribute('is-open', String(state === MenuState.Open));
   }, [state]);
 
   const setClosed = useCallback(() => {
@@ -138,7 +138,7 @@ export function MenuContent({
   useEffect(() => {
     if (state === MenuState.Open) ref.current?.showPopover();
     if (state === MenuState.Closed) ref.current?.hidePopover();
-    ref.current?.setAttribute('open', String(state === MenuState.Open));
+    ref.current?.setAttribute('is-open', String(state === MenuState.Open));
   }, [state]);
 
   useEffect(() => {

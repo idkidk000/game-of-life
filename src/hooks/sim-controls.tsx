@@ -3,30 +3,21 @@ import { EventEmitter } from '@/lib/event-emitter';
 import { defaultSimRules, defaultSimSpawn, type SimRules, type SimSpawn } from '@/lib/simulation';
 import { omit } from '@/lib/utils';
 
-export enum Renderer {
-  Canvas2d,
-  Regl,
-}
-
 export interface Controls {
-  bloom: boolean;
   paused: boolean;
   rules: SimRules;
   scale: number;
   spawn: SimSpawn & { enabled: boolean };
   speed: number;
-  renderer: Renderer;
   wrap: boolean;
 }
 
 export const controlDefaults: Controls = {
-  bloom: true,
   paused: false,
   rules: defaultSimRules,
   scale: 0.3,
   spawn: { ...defaultSimSpawn, enabled: defaultSimSpawn.chance > 0 },
   speed: 1,
-  renderer: Renderer.Regl,
   wrap: true,
 };
 
@@ -44,20 +35,24 @@ interface Context {
 
 const Context = createContext<Context | null>(null);
 
-function getStoredValue() {
+function readLocalStorage() {
   const value = localStorage.getItem('controls');
   if (!value) return null;
   return omit(JSON.parse(value) as Controls, ['paused']);
 }
 
-export function ControlsProvider({ children }: { readonly children: ReactNode }) {
-  const [controls, setControls] = useState<Controls>({ ...controlDefaults, ...getStoredValue() });
+function writeLocalStorage(value: Controls) {
+  localStorage.setItem('controls', JSON.stringify(value));
+}
+
+export function SimControlsProvider({ children }: { readonly children: ReactNode }) {
+  const [controls, setControls] = useState<Controls>({ ...controlDefaults, ...readLocalStorage() });
   const controlsRef = useRef<Controls>(controls);
   const commandsRef = useRef(new EventEmitter<Command>());
 
   useEffect(() => {
     controlsRef.current = controls;
-    localStorage.setItem('controls', JSON.stringify(controls));
+    writeLocalStorage(controls);
   }, [controls]);
 
   const contextValue: Context = useMemo(() => ({ controls, setControls, controlsRef, commandsRef }), [controls]);
@@ -65,8 +60,8 @@ export function ControlsProvider({ children }: { readonly children: ReactNode })
   return <Context value={contextValue}>{children}</Context>;
 }
 
-export function useControls() {
+export function useSimControls() {
   const context = useContext(Context);
-  if (context === null) throw new Error('useControls must be used underneath a ControlsProvider');
+  if (context === null) throw new Error('useSimControls must be used underneath a SimControlsProvider');
   return context;
 }

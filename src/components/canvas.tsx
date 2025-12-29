@@ -1,10 +1,10 @@
 import { type MouseEvent, type RefObject, useCallback, useEffect, useLayoutEffect } from 'react';
-import { Command, useControls } from '@/hooks/controls';
+import { Command, useSimControls } from '@/hooks/sim-controls';
 import { useSimObject } from '@/hooks/sim-object';
 import { useSimulation } from '@/hooks/simulation';
 
 export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | null> }) {
-  const { commandsRef, controls, controlsRef, setControls } = useControls();
+  const { commandsRef, controls, controlsRef, setControls } = useSimControls();
   const { simulationRef } = useSimulation();
   const { activeSimObjectRef } = useSimObject();
 
@@ -89,5 +89,5 @@ export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | 
   []);
 
   // overflow hidden is for chromium jank. the canvas cannot and does not overflow.
-  return <canvas ref={canvasRef} onMouseMove={handleMouseMove} onClick={handleClick} onContextMenu={handleRightClick} className='overflow-hidden' />;
+  return <canvas ref={canvasRef} onMouseMove={handleMouseMove} onClick={handleClick} onContextMenu={handleRightClick} className='overflow-hidden ' />;
 }

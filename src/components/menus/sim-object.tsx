@@ -4,7 +4,7 @@ import { Menu, MenuClose, MenuContent, MenuTrigger } from '@/components/menu';
 import { Modal, ModalContent, ModalTrigger, useModal } from '@/components/modal';
 import { ToolTip } from '@/components/tooltip';
 import { AddBox, CardText } from '@/generated/icons';
-import { useControls } from '@/hooks/controls';
+import { useSimControls } from '@/hooks/sim-controls';
 import { useSimObject } from '@/hooks/sim-object';
 import { SimObject } from '@/lib/sim-object';
 import { pointsToPath } from '@/lib/utils';
@@ -118,7 +118,7 @@ function ImportModalContent() {
 
 export function SimObjectMenu() {
   const { setActiveSimObject, simObjects } = useSimObject();
-  const { controls } = useControls();
+  const { controls } = useSimControls();
 
   // biome-ignore format: do not
   const handleObjectClick = useCallback((id: string) =>

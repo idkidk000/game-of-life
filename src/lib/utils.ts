@@ -6,7 +6,7 @@ export function pick<Item extends object, Key extends Extract<keyof Item, string
   return Object.fromEntries(Object.entries(item).filter(([key]) => keys.includes(key as Key))) as Return;
 }
 
-type Obj = Record<string | number | symbol, unknown>;
+export type Obj = Record<string | number | symbol, unknown>;
 
 export function objectIsEqual(a: Obj, b: Obj): boolean {
   for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
@@ -31,4 +31,8 @@ export function pointsToPath(points: [x: number, y: number][]): string {
       return `M${x},${y}h0`;
     })
     .join('');
+}
+
+export function enumValues<Item extends Record<string, number | string>>(item: Item) {
+  return Object.entries(item).filter(([key]) => Number.isNaN(Number(key))) as [string, number][];
 }

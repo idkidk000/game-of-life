@@ -28,7 +28,7 @@ export function Modal({ children, closingMillis = 300 }: { children: ReactNode; 
   useEffect(() => {
     stateRef.current = state;
     // toggle open attrib for styling
-    triggerRef.current?.toggleAttribute('open', state === ModalState.Open);
+    triggerRef.current?.setAttribute('is-open', String(state === ModalState.Open));
   }, [state]);
 
   const setClosed = useCallback(() => {
@@ -112,7 +112,7 @@ export function ModalContent({
   useEffect(() => {
     if (state === ModalState.Open) modalRef.current?.showModal();
     if (state === ModalState.Closed) modalRef.current?.close();
-    modalRef.current?.setAttribute('open', String(state === ModalState.Open));
+    modalRef.current?.setAttribute('is-open', String(state === ModalState.Open));
   }, [state]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object

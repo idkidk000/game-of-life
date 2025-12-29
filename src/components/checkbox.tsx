@@ -1,7 +1,19 @@
 import { type ChangeEvent, useCallback, useId } from 'react';
 import { ToolTip } from '@/components/tooltip';
 
-export function Checkbox({ label, value, onValueChange, title }: { label: string; value: boolean; onValueChange: (value: boolean) => unknown; title: string }) {
+export function Checkbox({
+  label,
+  value,
+  onValueChange,
+  title,
+  disabled = false,
+}: {
+  label: string;
+  value: boolean;
+  onValueChange: (value: boolean) => unknown;
+  title: string;
+  disabled?: boolean;
+}) {
   const id = useId();
 
   const handleChange = useCallback((event: ChangeEvent<HTMLInputElement>) => onValueChange(event.target.checked), [onValueChange]);
@@ -10,7 +22,7 @@ export function Checkbox({ label, value, onValueChange, title }: { label: string
     <ToolTip title={title}>
       <span className='input-group'>
         <label htmlFor={id}>{label}</label>
-        <input id={id} type='checkbox' onChange={handleChange} checked={value} />
+        <input id={id} type='checkbox' onChange={handleChange} checked={value} disabled={disabled} />
       </span>
     </ToolTip>
   );
