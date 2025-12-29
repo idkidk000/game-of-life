@@ -16,6 +16,6 @@ Supports custom rules and [RLE](https://conwaylife.com/wiki/Run_Length_Encoded) 
 
 - Install dependencies with `npm install`, `deno install`, etc
 
-- Run the `icons` script to generate icons with `npm run icons`, `deno task icons`, etc
+- Run the `generate` script to generate icons and RLE objects with `npm run generate`, `deno task generate`, etc
 
 - Run the `dev` script to start the dev server with `npm run dev`, `deno task dev`, etc

@@ -1,5 +1,4 @@
-/* `vite-plugin-webfont-dl` fetches and inlines this */
-@import url("https://fonts.googleapis.com/css2?family=Jersey+10&display=swap");
+@import "@fontsource/jersey-10";
 @import "tailwindcss";
 
 :root {
@@ -45,9 +44,9 @@
   &:has(body.orange) {
     --accent: var(--color-orange-500);
   }
-  /* &:has(body.pink) { */
-  --accent: var(--color-pink-500);
-  /* } */
+  &:has(body.pink) {
+    --accent: var(--color-pink-500);
+  }
   &:has(body.purple) {
     --accent: var(--color-purple-500);
   }

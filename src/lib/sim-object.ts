@@ -1,8 +1,4 @@
-// https://conwaylife.com/wiki/RLE
-
 import { pointsToPath } from '@/lib/utils';
-import rles from '@/res/rles.txt?raw';
-
 export interface SimObjectLike {
   comment?: string;
   height: number;
@@ -31,9 +27,18 @@ function hash(pattern: string): string {
     u8[i - length] ^= u8[i] * (Math.ceil(i / length / 2) * 2) + 1;
     i--;
   }
-  // @ts-expect-error it exists on the client
+  const subarray = u8.subarray(0, length);
+
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toBase64
-  const hashed: string = u8.subarray(0, length).toBase64();
+  // https://nodejs.org/docs/v24.12.0/api/buffer.html#static-method-bufferfrombuffer
+  // https://nodejs.org/docs/v24.12.0/api/buffer.html#buftostringencoding-start-end
+  const hashed: string | null =
+    'toBase64' in subarray && typeof subarray.toBase64 === 'function'
+      ? subarray.toBase64()
+      : typeof Buffer === 'function'
+        ? Buffer.from(subarray).toString('base64')
+        : null;
+  if (hashed === null) throw new Error('No suitable method to convert TypedArray to base64 string');
   // console.debug({ pattern, hashed });
   return hashed;
 }
@@ -58,6 +63,7 @@ export class SimObject implements SimObjectLike {
       if (!patternMatch?.groups) throw new Error('could not match pattern', { cause: param });
       const pattern = patternMatch.groups.pattern.replaceAll(/\s/g, '');
 
+      // https://conwaylife.com/wiki/RLE
       let quantifier = '';
       let x = 0;
       let y = 0;
@@ -140,9 +146,3 @@ export class SimObject implements SimObjectLike {
     };
   }
 }
-
-export const defaultSimObjects = rles
-  .replaceAll(/^\/\/.*$/gm, '')
-  .split('\n\n')
-  .filter((item) => item.trim().length)
-  .map((rle) => new SimObject(rle).toJSON());

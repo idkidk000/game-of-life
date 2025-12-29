@@ -1,5 +1,6 @@
 import { createContext, type Dispatch, type ReactNode, type RefObject, type SetStateAction, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { defaultSimObjects, SimObject, type SimObjectLike } from '@/lib/sim-object';
+import defaultSimObjects from '@/generated/sim-objects.json';
+import { SimObject, type SimObjectLike } from '@/lib/sim-object';
 
 interface Context {
   simObjects: SimObjectLike[];
@@ -25,7 +26,7 @@ function writeLocalStorage(objects: SimObjectLike[]) {
 export function SimObjectProvider({ children }: { children: ReactNode }) {
   const [activeSimObject, setActiveSimObject] = useState<Context['activeSimObject']>(null);
   const activeSimObjectRef = useRef<Context['activeSimObject']>(null);
-  const [simObjects, setSimObjects] = useState<SimObjectLike[]>(readLocalStorage() ?? [...defaultSimObjects]);
+  const [simObjects, setSimObjects] = useState<SimObjectLike[]>(readLocalStorage() ?? [...(defaultSimObjects as SimObjectLike[])]);
 
   useEffect(() => {
     activeSimObjectRef.current = activeSimObject;

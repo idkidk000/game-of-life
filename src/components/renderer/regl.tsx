@@ -145,23 +145,26 @@ export function RendererRegl() {
         void main() {
           // actually 2 pixels
           vec2 pixel = vec2(1, 1) / canvasSize * 2.0;
-          vec4 colour = texture2D(texture, uv);
+          vec4 blur = vec4(0, 0, 0, 0);
 
-          // loop over neighbours, exclude by r2, add their colour multiplied by falloff
+          // loop over neighbours, exclude by r2, accumulate their colour multiplied by falloff into blur
           for (float x = -radius; x <= radius; x++) {
             for (float y = -radius; y <= radius; y++) {
               float r2 = pow(x, 2.0) + pow(y, 2.0);
-              if (r2 > maxR2) continue;
+              if (r2 >= maxR2) continue;
               vec4 pointColour = texture2D(texture, uv + (vec2(x, y) * pixel));
 
               // playing with falloff
-              // colour += pointColour / maxR2 * (maxR2 - r2) * 0.05;
-              colour += pointColour * pow((maxR2 - r2) / maxR2, 4.0) * 0.05;
+              // blur += pointColour / maxR2 * (maxR2 - r2) * 0.05;
+              blur += pointColour * pow((maxR2 - r2) / maxR2, 4.0) * 0.05;
             }
           }
 
+          vec4 colour = texture2D(texture, uv);
+          vec4 mixed = colour * 0.5 + blur * 1.2;
+
           // add in background and remove opacity
-          gl_FragColor = vec4(colour.rgb + background.rgb * (1.0 - colour.a), 1);
+          gl_FragColor = vec4(mixed.rgb + background.rgb * (1.0 - mixed.a), 1);
         }
       `,
       uniforms: {
@@ -270,8 +273,8 @@ export function RendererRegl() {
   return (
     <>
       <Canvas ref={canvasRef} />
-      <div className='fixed bottom-0 left-0 right-0 p-4 m-1 bg-background/70'>
-        <div className='grid grid-cols-[repeat(auto-fit,minmax(8ch,1fr))] gap-4 text-4xl font-medium text-center max-w-6xl mx-auto' ref={labelsRef}>
+      <div className='fixed bottom-0 left-0 right-0 p-4 m-1 bg-background/70 pointer-events-none select-none'>
+        <div className='grid grid-cols-[repeat(auto-fit,minmax(10ch,1fr))] gap-4 text-4xl font-medium text-center max-w-6xl mx-auto' ref={labelsRef}>
           <span className='text-label-1' />
           <span className='text-label-2' />
           <span className='text-label-3' />

@@ -61,7 +61,7 @@ function useToolTip(): Context {
 
 export function ToolTip({ children, title }: { children: ReactElement; title: string }) {
   const popoverRef = useRef<HTMLParagraphElement>(null);
-  const timerRef = useRef<number | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [closing, setClosing] = useState(false);
   const [trigger, setTrigger] = useState<HTMLElement | null>(null);
   const stateRef = useRef(ToolTipState.Closed);
@@ -103,7 +103,7 @@ export function ToolTip({ children, title }: { children: ReactElement; title: st
 
     // biome-ignore format: no
     trigger.addEventListener('mouseenter', () => {
-      stateRef.current=ToolTipState.Open;
+      stateRef.current = ToolTipState.Open;
       if (timerRef.current) clearTimeout(timerRef.current);
       if (settingsRef.current.closeMillis) timerRef.current = setTimeout(beginClose, settingsRef.current.closeMillis);
       updatePosition()
