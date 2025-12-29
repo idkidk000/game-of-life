@@ -14,6 +14,7 @@ interface Controls {
   background: boolean;
   /** temporal additive blur actually but that's a bit verbose */
   bloom: boolean;
+  blurFalloff: number;
 }
 
 export const defaultControls: Controls = {
@@ -25,6 +26,7 @@ export const defaultControls: Controls = {
   blur2Mix: 50,
   background: true,
   bloom: true,
+  blurFalloff: 3,
 };
 
 interface Context {
@@ -46,7 +48,7 @@ function writeLocalStorage(value: Controls) {
 }
 
 export function RenderControlsProvider({ children }: { children: ReactNode }) {
-  const [controls, setControls] = useState<Controls>({ ...defaultControls, ...readLocalStorage });
+  const [controls, setControls] = useState<Controls>({ ...defaultControls, ...readLocalStorage() });
   const controlsRef = useRef<Controls>(controls);
 
   useEffect(() => {

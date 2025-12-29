@@ -24,6 +24,8 @@ interface DynamicProps {
   radius: number;
   step: number;
   showBackground: boolean;
+  falloff: number;
+  wrap: boolean;
 }
 
 // https://github.com/regl-project/regl/blob/gh-pages/API.md
@@ -32,11 +34,11 @@ interface DynamicProps {
 // https://wikis.khronos.org/opengl/Data_Type_(GLSL) (but webgl1 is based on opengl es 2, which is very old, so a lot of these docs don't apply)
 export function Renderer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { controlsRef } = useSimControls();
+  const { controlsRef: simControlsRef } = useSimControls();
   const { simulationRef, stepTimesRef } = useSimulation();
   const { themeDarkRef, themeRef } = useTheme();
   const labelsRef = useRef<HTMLDivElement>(null);
-  const { controlsRef: rendererControlsRef } = useRenderControls();
+  const { controlsRef: renderControlsRef } = useRenderControls();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref objects
   useEffect(() => {
@@ -163,10 +165,19 @@ export function Renderer() {
         uniform vec2 canvasSize;
         uniform float radius;
         uniform float step;
+        uniform float falloff;
+        uniform bool wrap;
 
         varying vec2 uv;
 
         const float maxBounds = 16.0;
+
+        float modOne(float value) {
+          if (!wrap) return value;
+          if (value > 1.0) return value - 1.0;
+          if (value < 0.0) return value + 1.0;
+          return value;
+        }
 
         void main() {
           float maxR2 = pow(radius, 2.0);
@@ -181,11 +192,11 @@ export function Renderer() {
               if (y < -radius || y > radius) continue;
               float r2 = pow(x, 2.0) + pow(y, 2.0);
               if (r2 >= maxR2) continue;
-              vec4 pointColour = texture2D(texture, uv + (vec2(x, y) * pixel));
-
-              // playing with falloff
-              // blur += pointColour / maxR2 * (maxR2 - r2) * 0.05;
-              blur += pointColour * pow((maxR2 - r2) / maxR2, 4.0) * 0.05;
+              vec2 unbounded = uv + (vec2(x, y) * pixel);
+              // apparently there is no mod operator
+              vec2 wrapped = vec2(modOne(unbounded.x), modOne(unbounded.y));
+              vec4 pointColour = texture2D(texture, wrapped);
+              blur += pointColour * pow((maxR2 - r2) / maxR2, falloff) * 0.05;
             }
           }
 
@@ -197,6 +208,8 @@ export function Renderer() {
         canvasSize: regl.prop<DynamicProps, 'canvasSize'>('canvasSize'),
         radius: regl.prop<DynamicProps, 'radius'>('radius'),
         step: regl.prop<DynamicProps, 'step'>('step'),
+        falloff: regl.prop<DynamicProps, 'falloff'>('falloff'),
+        wrap: regl.prop<DynamicProps, 'wrap'>('wrap'),
       },
       attributes: {
         verts: [
@@ -295,12 +308,9 @@ export function Renderer() {
     regl.frame(({ tick, time }) => {
       frameTimes.push(time);
       if (!canvasRef.current) return;
-      let needsRender = false;
-      if (!controlsRef.current.paused) stepTimesRef.current.push(simulationRef.current.step(controlsRef.current.speed));
-      if (simulationRef.current.steps !== prevSteps) {
-        prevSteps = simulationRef.current.steps;
-        needsRender = true;
-      }
+      if (!simControlsRef.current.paused) stepTimesRef.current.push(simulationRef.current.step(simControlsRef.current.speed));
+      if (simulationRef.current.steps !== prevSteps) prevSteps = simulationRef.current.steps;
+      let needsRender = simulationRef.current.dirty;
 
       // recreate / resize buffers on sim size change
       if (simulationRef.current.size !== simSize) {
@@ -325,7 +335,7 @@ export function Renderer() {
         for (const [x, y, age, neighbours] of simulationRef.current.values()) {
           const [r, g, b] = convert.hsl.rgb(
             age + themeRef.current.hue,
-            rendererControlsRef.current.bloom ? 100 : (100 / 3) * Math.min(3, neighbours),
+            renderControlsRef.current.bloom ? 100 : (100 / 3) * Math.min(3, neighbours),
             themeDarkRef.current ? 70 : 30
           );
           colourArray[i * 3 + 0] = r;
@@ -340,7 +350,7 @@ export function Renderer() {
         colourBuffer.subdata(colourArray.subarray(0, (i + 1) * 3));
         positionBuffer.subdata(positionArray.subarray(0, (i + 1) * 2));
 
-        if (rendererControlsRef.current.bloom) {
+        if (renderControlsRef.current.bloom) {
           // render
           // clear framebuffer to transparent black to avoid interfering with colour mixing
           regl.clear({ color: [0, 0, 0, 0], depth: 1, framebuffer: drawFramebuffer });
@@ -353,8 +363,10 @@ export function Renderer() {
           additiveBlur({
             canvasSize: [canvasRef.current.width, canvasRef.current.height],
             framebuffer: blurs[0].framefuffer,
-            radius: rendererControlsRef.current.blurRadius,
-            step: rendererControlsRef.current.blurStep,
+            radius: renderControlsRef.current.blurRadius,
+            step: renderControlsRef.current.blurStep,
+            falloff: renderControlsRef.current.blurFalloff,
+            wrap: simControlsRef.current.wrap,
           });
 
           // clear the canvas
@@ -365,11 +377,11 @@ export function Renderer() {
             blur0: blurs[0].texture,
             blur1: blurs[1].texture,
             blur2: blurs[2].texture,
-            colourMix: rendererControlsRef.current.colourMix / 100,
-            blur0Mix: rendererControlsRef.current.blur0Mix / 100,
-            blur1Mix: rendererControlsRef.current.blur1Mix / 100,
-            blur2Mix: rendererControlsRef.current.blur2Mix / 100,
-            showBackground: rendererControlsRef.current.background,
+            colourMix: renderControlsRef.current.colourMix / 100,
+            blur0Mix: renderControlsRef.current.blur0Mix / 100,
+            blur1Mix: renderControlsRef.current.blur1Mix / 100,
+            blur2Mix: renderControlsRef.current.blur2Mix / 100,
+            showBackground: renderControlsRef.current.background,
           });
 
           // rotate blurs

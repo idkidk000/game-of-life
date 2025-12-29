@@ -3,11 +3,7 @@
     "allowImportingTsExtensions": true,
     "erasableSyntaxOnly": false,
     "jsx": "react-jsx",
-    "lib": [
-      "ESNext",
-      "DOM",
-      "DOM.Iterable",
-    ],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleDetection": "force",
     /* Bundler mode */
@@ -18,9 +14,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
     "skipLibCheck": true,
     "strict": true,
@@ -29,12 +23,10 @@
     "types": [
       "vite/client",
       // for src/lib/sim-object Uint8Array to base64 fallback when imported from node
-      "node",
+      "node"
     ],
     "useDefineForClassFields": true,
     "verbatimModuleSyntax": true
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }

@@ -3,7 +3,7 @@ import { Button } from '@/components/button';
 import { Menu, MenuClose, MenuContent, MenuTrigger } from '@/components/menu';
 import { GraphicsMenu } from '@/components/menus/graphics';
 import { MainMenu } from '@/components/menus/main';
-import { SimObjectMenu } from '@/components/menus/sim-object';
+import { ToolsMenu } from '@/components/menus/tools';
 import { Camera, Cut, Next, Pause, Play, Trash, UserMinus, UserPlus, ViewportNarrow, ViewportWide, Zap } from '@/generated/icons';
 import { Command, useSimControls } from '@/hooks/sim-controls';
 import { useSimulation } from '@/hooks/simulation';
@@ -35,10 +35,7 @@ export function Nav() {
   const handleSaveClick = useCallback(() => commandsRef.current.emit(Command.Save), []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  const handleSeedClick = useCallback(() => {
-    simulationRef.current.seed();
-    if (controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: false }));
-  }, []);
+  const handleSeedClick = useCallback(() => simulationRef.current.seed(), []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleStepClick = useCallback(() => {
@@ -149,7 +146,7 @@ export function Nav() {
           </div>
         </MenuContent>
       </Menu>
-      <SimObjectMenu />
+      <ToolsMenu />
       <Button title={fullScreen ? 'Minimise' : 'Full screen'} onClick={handleFullScreenClick} className={fullScreen ? 'bg-accent' : undefined} label='Full'>
         {fullScreen ? <ViewportNarrow /> : <ViewportWide />}
       </Button>

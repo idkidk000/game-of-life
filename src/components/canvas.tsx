@@ -1,12 +1,12 @@
 import { type MouseEvent, type RefObject, useCallback, useEffect, useLayoutEffect } from 'react';
 import { Command, useSimControls } from '@/hooks/sim-controls';
-import { useSimObject } from '@/hooks/sim-object';
 import { useSimulation } from '@/hooks/simulation';
+import { useTool } from '@/hooks/tools';
 
 export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | null> }) {
   const { commandsRef, controls, controlsRef, setControls } = useSimControls();
   const { simulationRef } = useSimulation();
-  const { activeSimObjectRef } = useSimObject();
+  const { activeToolRef } = useTool();
 
   // adjust canvas resolution to fit the element
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
@@ -39,33 +39,27 @@ export function Canvas({ ref: canvasRef }: { ref: RefObject<HTMLCanvasElement | 
   }, []);
 
   // click to spawn
+  // biome-ignore format: no
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  const handleClick = useCallback(
-    (event: MouseEvent<HTMLCanvasElement>) => {
-      if (activeSimObjectRef.current) simulationRef.current.add(...clientXyToSimXy(event), activeSimObjectRef.current);
-      else simulationRef.current.add(...clientXyToSimXy(event));
-    },
-    [clientXyToSimXy, setControls]
-  );
+  const handleClick = useCallback((event: MouseEvent<HTMLCanvasElement>) =>
+    simulationRef.current.use(...clientXyToSimXy(event), activeToolRef.current),
+  [clientXyToSimXy, setControls]);
 
   // right-click to erase
+  // biome-ignore format: stop
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  const handleRightClick = useCallback(
-    (event: MouseEvent<HTMLCanvasElement>) => {
-      event.preventDefault();
-      simulationRef.current.erase(...clientXyToSimXy(event));
-    },
-    [clientXyToSimXy, setControls]
-  );
+  const handleRightClick = useCallback((event: MouseEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    simulationRef.current.use(...clientXyToSimXy(event), { id: 'erase' });
+  }, [clientXyToSimXy, setControls]);
 
   // drag to spawn, right-drag to erase
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleMouseMove = useCallback(
     (event: MouseEvent<HTMLCanvasElement>) => {
       if (!event.buttons) return;
-      // disable drag to span when a sim object is active
-      if (event.buttons & 0x1 && activeSimObjectRef.current) return;
-      simulationRef.current[event.buttons & 0x1 ? 'add' : 'erase'](...clientXyToSimXy(event));
+      if (event.buttons & 0x1 && !['erase', 'noise'].includes(activeToolRef.current.id)) return;
+      simulationRef.current.use(...clientXyToSimXy(event), event.buttons & 0x2 ? { id: 'erase' } : activeToolRef.current);
     },
     [clientXyToSimXy, setControls]
   );

@@ -171,7 +171,7 @@ export function ToolTip({ children, title }: { children: ReactElement; title: st
     <>
       {children}
       <p
-        popover='manual'
+        popover='hint'
         ref={popoverRef}
         className={`p-1 bg-background starting:opacity-0 starting:scale-95 starting:translate-y-4 transition-[opacity,scale,translate] duration-200 ease-in border-3 border-accent/50 text-xs -translate-x-1/2 text-right w-max ${closing ? 'opacity-0 scale-95 translate-y-4' : ''}`}
       >

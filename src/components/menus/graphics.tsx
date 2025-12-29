@@ -17,6 +17,7 @@ export function GraphicsMenu() {
   const handleBloomChange = useCallback((bloom: boolean) => setControls((prev) => ({ ...prev, bloom })), [setControls]);
   const handleRadiusChange = useCallback((blurRadius: number) => setControls((prev) => ({ ...prev, blurRadius })), [setControls]);
   const handleStepChange = useCallback((blurStep: number) => setControls((prev) => ({ ...prev, blurStep })), [setControls]);
+  const handleFalloffChange = useCallback((falloff: number) => setControls((prev) => ({ ...prev, blurFalloff: falloff })), [setControls]);
   const handleColourChange = useCallback((colourMix: number) => setControls((prev) => ({ ...prev, colourMix })), [setControls]);
   const handleBlur0Change = useCallback((blur0Mix: number) => setControls((prev) => ({ ...prev, blur0Mix })), [setControls]);
   const handleBlur1Change = useCallback((blur1Mix: number) => setControls((prev) => ({ ...prev, blur1Mix })), [setControls]);
@@ -63,6 +64,18 @@ export function GraphicsMenu() {
               max={64}
               step={1}
               unit='px'
+              disabled={!controls.bloom}
+            />
+            <Range
+              label='Falloff'
+              title='Blur falloff'
+              onValueChange={handleFalloffChange}
+              value={controls.blurFalloff}
+              decimals={0}
+              min={1}
+              max={8}
+              step={0.5}
+              unit=''
               disabled={!controls.bloom}
             />
             <Range

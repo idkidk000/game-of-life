@@ -1,4 +1,4 @@
-import type { SimObjectLike } from '@/lib/sim-object';
+import type { Tool } from '@/hooks/tools';
 
 export type SimRule = (0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8)[];
 
@@ -45,6 +45,7 @@ export class Simulation {
   #spawn: SimSpawn = { ...defaultSimSpawn };
   #alive = 0;
   #wrap: boolean;
+  #dirty = false;
   constructor(width: number, height: number, rules: SimRules = defaultSimRules, spawn: SimSpawn = defaultSimSpawn, wrap = true) {
     this.#width = width;
     this.#height = height;
@@ -74,6 +75,9 @@ export class Simulation {
   }
   get spawn() {
     return { ...this.#spawn };
+  }
+  get dirty() {
+    return this.#dirty;
   }
   set rules({ born, survive }: SimRules) {
     this.#born = (born as number[]).reduce((acc, item) => acc | (1 << item), 0);
@@ -131,27 +135,17 @@ export class Simulation {
     this.#height = height;
     this.#current = resized;
     this.#next = new Uint16Array(width * height);
+    this.#dirty = true;
   }
   clear(): void {
     this.#current.fill(0);
     this.#steps = 0;
+    this.#dirty = true;
   }
   seed(): void {
     // set a random neighbour count
     for (let i = 0; i < this.#current.length; ++i) this.#current[i] = (this.#current[i] & 0xff0) | Math.round(Math.random() * 8);
-  }
-  /** remove by coordinate */
-  erase(x: number, y: number): void {
-    console.debug('erase', { x, y });
-    const radius2 = this.#spawn.radius ** 2;
-    for (let rx = -this.#spawn.radius; rx <= this.#spawn.radius; ++rx)
-      for (let ry = -this.#spawn.radius; ry <= this.#spawn.radius; ++ry) {
-        const dist2 = rx ** 2 + ry ** 2;
-        if (dist2 > radius2) continue;
-        const index = this.#xyToIndex(rx + x, ry + y);
-        // clear the age and neighbour count. technically incorrect but faster than updating each cell's neighbours
-        this.#current[index] = 0;
-      }
+    this.#dirty = true;
   }
   /** remove by age */
   prune(type: SimPrune = SimPrune.Oldest): void {
@@ -171,36 +165,44 @@ export class Simulation {
       // remove from neighbour's neighbour counts
       this.#updateNeighbours(this.#current, i, -1);
     }
+    this.#dirty = true;
   }
-  /** add a sim object or noise */
-  add(x: number, y: number, object?: SimObjectLike) {
-    if (object) {
-      console.debug('add', object.name, { x, y });
-      const halfW = Math.round(object.width / 2);
-      const halfH = Math.round(object.height / 2);
-      // clear cells badly (border neighbours will still see them alive until next step)
-      for (let ox = -3; ox < object.width + 3; ++ox)
-        for (let oy = -3; oy < object.height + 3; ++oy) this.#current[this.#xyToIndex(x - halfW + ox, y - halfH + oy)] = 0;
-      for (const [ox, oy] of object.points) {
-        const [cx, cy] = [x - halfW + ox, y - halfH + oy];
+  use(x: number, y: number, tool: Tool) {
+    if (tool.id === 'noise' || tool.id === 'erase') {
+      const r2 = this.#spawn.radius ** 2;
+      for (let rx = -this.#spawn.radius; rx <= this.#spawn.radius; ++rx)
+        for (let ry = -this.#spawn.radius; ry <= this.#spawn.radius; ++ry) {
+          if (rx ** 2 + ry ** 2 > r2) continue;
+          const index = this.#xyToIndex(rx + x, ry + y);
+          this.#current[index] = tool.id === 'noise' ? (this.#current[index] & 0xff0) | Math.round(Math.random() * 8) : 0;
+        }
+    } else {
+      if (!('points' in tool)) throw new Error('invalid tool');
+      let { width, height } = tool;
+      let points: typeof tool.points = [];
+      if (tool.rotation === 0) points = tool.points;
+      else if (tool.rotation === 2) points = tool.points.map(([x, y]) => [width - x, height - y]);
+      else if (tool.rotation === 1) {
+        points = tool.points.map(([x, y]) => [height - y, x]);
+        [width, height] = [height, width];
+      } else if (tool.rotation === 3) {
+        points = tool.points.map(([x, y]) => [y, width - x]);
+        [width, height] = [height, width];
+      }
+      const halfWidth = Math.round(width / 2);
+      const halfHeight = Math.round(height / 2);
+      for (let ox = -3; ox < width + 3; ++ox)
+        for (let oy = -3; oy < height + 3; ++oy) this.#current[this.#xyToIndex(x - halfWidth + ox, y - halfHeight + oy)] = 0;
+      for (const [ox, oy] of points) {
+        const [cx, cy] = [x - halfWidth + ox, y - halfHeight + oy];
         const index = this.#xyToIndex(cx, cy);
         if (index === -1) continue;
         // set alive
         this.#current[index] = 0x10 | (this.#current[index] & 0xf);
         this.#updateNeighbours(this.#current, [cx, cy], 1);
       }
-    } else {
-      console.debug('add noise', { x, y });
-      const radius2 = this.#spawn.radius ** 2;
-      for (let rx = -this.#spawn.radius; rx <= this.#spawn.radius; ++rx)
-        for (let ry = -this.#spawn.radius; ry <= this.#spawn.radius; ++ry) {
-          const dist2 = rx ** 2 + ry ** 2;
-          if (dist2 > radius2) continue;
-          const index = this.#xyToIndex(rx + x, ry + y);
-          // set a random neighbour count
-          this.#current[index] = (this.#current[index] & 0xff0) | Math.round(Math.random() * 8);
-        }
     }
+    this.#dirty = true;
   }
   /** @returns performance duration in whole millis since we don't have high precision timers on the client */
   // TODO: add a local dirty array and use it to copy unchanged regions
@@ -209,7 +211,7 @@ export class Simulation {
     const started = performance.now();
     for (let iteration = 0; iteration < count; ++iteration) {
       // outside of the loop so we don't interfere with neighbour count incrementing
-      if (this.#spawn.chance / 100 >= Math.random()) this.add(...this.#indexToXy(Math.round(Math.random() * this.#current.length)));
+      if (this.#spawn.chance / 100 >= Math.random()) this.use(...this.#indexToXy(Math.round(Math.random() * this.#current.length)), { id: 'noise' });
       this.#alive = 0;
       // simulation loop
       for (let i = 0; i < this.#current.length; ++i) {
@@ -230,12 +232,14 @@ export class Simulation {
       this.#next.fill(0);
     }
     this.#steps += count;
+    this.#dirty = true;
     return performance.now() - started;
   }
   /** age is 0-255, neighbours is 0-8 */
   *values(all = false): Generator<[x: number, y: number, age: number, neighbours: number], undefined, undefined> {
     for (let i = 0; i < this.#current.length; ++i)
       if (all || this.#current[i] & 0xff0) yield [...this.#indexToXy(i), this.#current[i] >> 4, this.#current[i] & 0xf];
+    this.#dirty = false;
   }
   /** there is no browser equivalent of `inspect.custom` from `node:util` */
   inspect() {

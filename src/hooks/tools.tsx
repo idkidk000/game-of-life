@@ -2,13 +2,14 @@ import { createContext, type Dispatch, type ReactNode, type RefObject, type SetS
 import defaultSimObjects from '@/generated/sim-objects.json';
 import { SimObject, type SimObjectLike } from '@/lib/sim-object';
 
+export type Tool = (SimObjectLike & { rotation: number }) | { id: 'noise' } | { id: 'erase' };
 interface Context {
   simObjects: SimObjectLike[];
-  addSimObject: (object: SimObjectLike) => unknown;
-  removeSimObject: (id: string) => unknown;
-  activeSimObject: SimObjectLike | null;
-  setActiveSimObject: Dispatch<SetStateAction<SimObjectLike | null>>;
-  activeSimObjectRef: RefObject<SimObjectLike | null>;
+  addSimObject: (object: SimObjectLike) => void;
+  removeSimObject: (id: string) => void;
+  activeTool: Tool;
+  setActiveTool: Dispatch<SetStateAction<Tool>>;
+  activeToolRef: RefObject<Tool>;
 }
 
 const Context = createContext<Context | null>(null);
@@ -23,20 +24,20 @@ function writeLocalStorage(objects: SimObjectLike[]) {
   localStorage.setItem('simObjects', JSON.stringify(objects.map((object) => (object instanceof SimObject ? object.toJSON() : object))));
 }
 
-export function SimObjectProvider({ children }: { children: ReactNode }) {
-  const [activeSimObject, setActiveSimObject] = useState<Context['activeSimObject']>(null);
-  const activeSimObjectRef = useRef<Context['activeSimObject']>(null);
+export function ToolProvider({ children }: { children: ReactNode }) {
+  const [activeTool, setActiveTool] = useState<Context['activeTool']>({ id: 'noise' });
+  const activeToolRef = useRef<Context['activeTool']>(activeTool);
   const [simObjects, setSimObjects] = useState<SimObjectLike[]>(readLocalStorage() ?? [...(defaultSimObjects as SimObjectLike[])]);
 
   useEffect(() => {
-    activeSimObjectRef.current = activeSimObject;
-  }, [activeSimObject]);
+    activeToolRef.current = activeTool;
+  }, [activeTool]);
 
   // biome-ignore format: do not
   const contextValue: Context = useMemo(() => ({
-    activeSimObject,
-    activeSimObjectRef,
-    setActiveSimObject,
+    activeTool,
+    activeToolRef,
+    setActiveTool,
     simObjects,
     addSimObject(object) {
       const json = object instanceof SimObject ? object.toJSON() : object;
@@ -56,13 +57,13 @@ export function SimObjectProvider({ children }: { children: ReactNode }) {
         return next;
       });
     },
-  }), [activeSimObject, simObjects]);
+  }), [activeTool, simObjects]);
 
   return <Context value={contextValue}>{children}</Context>;
 }
 
-export function useSimObject() {
+export function useTool() {
   const context = useContext(Context);
-  if (context === null) throw new Error('useSimObject must be used underneath a SimObjectProvider');
+  if (context === null) throw new Error('useTool must be used underneath a ToolProvider');
   return context;
 }

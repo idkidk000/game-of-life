@@ -1,4 +1,3 @@
-
 // collected from https://conwaylife.com
 
 #N Glider

@@ -3,13 +3,13 @@ import { Button } from '@/components/button';
 import { Menu, MenuClose, MenuContent, MenuTrigger } from '@/components/menu';
 import { Modal, ModalContent, ModalTrigger, useModal } from '@/components/modal';
 import { ToolTip } from '@/components/tooltip';
-import { AddBox, CardText } from '@/generated/icons';
+import { CardText, DragAndDrop } from '@/generated/icons';
 import { useSimControls } from '@/hooks/sim-controls';
-import { useSimObject } from '@/hooks/sim-object';
+import { useTool } from '@/hooks/tools';
 import { SimObject } from '@/lib/sim-object';
 import { pointsToPath } from '@/lib/utils';
 
-function SimObjectViewer<T extends string | null | undefined>({
+function SimObjectViewer<T extends string | null>({
   name,
   id,
   width,
@@ -24,14 +24,27 @@ function SimObjectViewer<T extends string | null | undefined>({
   path: string;
   onClick?: (id: T) => unknown;
 }) {
-  const { activeSimObject } = useSimObject();
+  const { activeTool } = useTool();
 
   const handleClick = useCallback(() => onClick?.(id), [id, onClick]);
+
+  const rotation =
+    activeTool.id === id && 'rotation' in activeTool
+      ? activeTool.rotation === 0
+        ? 'rotate-0'
+        : activeTool.rotation === 1
+          ? 'rotate-90'
+          : activeTool.rotation === 2
+            ? 'rotate-180'
+            : activeTool.rotation === 3
+              ? 'rotate-270'
+              : ''
+      : '';
 
   return (
     <ToolTip title={name ?? 'Unknown'}>
       <span
-        className={`flex flex-col gap-4 items-center justify-center p-4 border-3 max-w-40 overflow-hidden transition-[border-color] duration-200 ${(activeSimObject && activeSimObject.id === id) || (!activeSimObject && activeSimObject === id) ? 'border-accent' : 'border-transparent hover:border-accent/50 active:border-accent'}`}
+        className={`flex flex-col gap-4 items-center justify-center p-4 border-3 max-w-40 overflow-hidden transition-[border-color] duration-200 ${activeTool.id === id ? 'border-accent' : 'border-transparent hover:border-accent/50 active:border-accent'}`}
         onClick={handleClick}
       >
         <svg
@@ -41,7 +54,7 @@ function SimObjectViewer<T extends string | null | undefined>({
           strokeLinecap='square'
           strokeWidth='1'
           viewBox={`-0.5 -0.5 ${width} ${height}`}
-          className='h-12 max-w-full'
+          className={`h-12 max-w-full ${rotation}`}
         >
           <path d={path} />
         </svg>
@@ -77,7 +90,7 @@ function ImportModalContent() {
   const { setClosed, state } = useModal();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const { addSimObject, setActiveSimObject } = useSimObject();
+  const { addSimObject, setActiveTool: setActiveSimObject } = useTool();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate
   useEffect(() => {
@@ -89,9 +102,9 @@ function ImportModalContent() {
   const handleClick = useCallback(() => {
     if (!textAreaRef.current) return;
     try {
-      const item = new SimObject(textAreaRef.current.value);
+      const item = new SimObject(textAreaRef.current.value).toJSON();
       addSimObject(item);
-      setActiveSimObject(item);
+      setActiveSimObject({ ...item, rotation: 0 });
       textAreaRef.current.value = '';
       setError(null);
       setClosed();
@@ -116,46 +129,60 @@ function ImportModalContent() {
   );
 }
 
-export function SimObjectMenu() {
-  const { setActiveSimObject, simObjects } = useSimObject();
+export function ToolsMenu() {
+  const { setActiveTool, activeToolRef, simObjects } = useTool();
   const { controls } = useSimControls();
 
   // biome-ignore format: do not
-  const handleObjectClick = useCallback((id: string) =>
-    setActiveSimObject(simObjects[simObjects.findIndex((item) => item.id === id)]),
-  [setActiveSimObject, simObjects]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
+  const handleObjectClick = useCallback((id: string) => {
+    const object = simObjects[simObjects.findIndex((item) => item.id === id)];
+    if (object.id === activeToolRef.current.id && 'rotation' in activeToolRef.current)
+      setActiveTool({ ...object, rotation: (activeToolRef.current.rotation + 1) % 4 });
+    else setActiveTool({...object,rotation:0})
+  }, [setActiveTool, simObjects]);
 
-  const handleNoiseClick = useCallback(() => setActiveSimObject(null), [setActiveSimObject]);
+  const handleNoiseClick = useCallback(() => setActiveTool({ id: 'noise' }), [setActiveTool]);
+  const handleEraseClick = useCallback(() => setActiveTool({ id: 'erase' }), [setActiveTool]);
 
   const randomPath = useMemo(() => pointsToPath(makeRandomPoints(controls.spawn.radius)), [controls.spawn.radius]);
 
+  //TODO: icon
   return (
     <Menu>
       <MenuTrigger>
-        <Button title='Add object' label='Add'>
-          <AddBox />
+        <Button title='Tools menu' label='Tool'>
+          <DragAndDrop />
         </Button>
       </MenuTrigger>
       <MenuContent width='full'>
         <div className='flex flex-wrap gap-4 p-4 justify-center items-center'>
           {simObjects.map((simObject) => (
-            <MenuClose key={simObject.id}>
-              <SimObjectViewer {...simObject} onClick={handleObjectClick} />
-            </MenuClose>
+            <SimObjectViewer key={simObject.id} {...simObject} onClick={handleObjectClick} />
           ))}
           <MenuClose>
             <SimObjectViewer
               height={controls.spawn.radius * 2}
-              id={null}
+              id={'noise'}
               path={randomPath}
               width={controls.spawn.radius * 2}
               name='Noise'
               onClick={handleNoiseClick}
             />
           </MenuClose>
+          <MenuClose>
+            <SimObjectViewer
+              height={controls.spawn.radius * 2}
+              id={'erase'}
+              path=''
+              width={controls.spawn.radius * 2}
+              name='Erase'
+              onClick={handleEraseClick}
+            />
+          </MenuClose>
           <Modal>
             <ModalTrigger>
-              <SimObjectViewer height={7} id={undefined} path={importPath} width={7} name='Import RLE' />
+              <SimObjectViewer height={7} id={null} path={importPath} width={7} name='Import RLE' />
             </ModalTrigger>
             <ImportModalContent />
           </Modal>

@@ -28,7 +28,6 @@ function hash(pattern: string): string {
     i--;
   }
   const subarray = u8.subarray(0, length);
-
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toBase64
   // https://nodejs.org/docs/v24.12.0/api/buffer.html#static-method-bufferfrombuffer
   // https://nodejs.org/docs/v24.12.0/api/buffer.html#buftostringencoding-start-end

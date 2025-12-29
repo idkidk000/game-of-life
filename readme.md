@@ -1,10 +1,13 @@
 ## Conway's Game of Life
 
+![Screenshot](res/screenshot.jpg)
+
 Written in TypeScript, React, Tailwind, and [`regl`](https://www.npmjs.com/package/regl)
 
 Supports custom rules and [RLE](https://conwaylife.com/wiki/Run_Length_Encoded) objects
 
 [Wikipedia article](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
+
 
 ### Running in the browser
 
