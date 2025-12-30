@@ -103,7 +103,8 @@
   div#root {
     @apply h-dvh;
   }
-  button {
+  button,
+  .button {
     @apply bg-foreground/20 px-2 shadow transition-[background-color,color,border-color] duration-200 border-3 border-transparent flex flex-col items-center uppercase;
     &:not(:disabled) {
       &:hover {

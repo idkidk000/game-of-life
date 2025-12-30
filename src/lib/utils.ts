@@ -36,3 +36,7 @@ export function pointsToPath(points: [x: number, y: number][]): string {
 export function enumValues<Item extends Record<string, number | string>>(item: Item) {
   return Object.entries(item).filter(([key]) => Number.isNaN(Number(key))) as [string, number][];
 }
+
+export function lerp(left: number, right: number, steps: number, step: number): number {
+  return left + ((right - left) / steps) * step;
+}

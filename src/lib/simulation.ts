@@ -19,7 +19,7 @@ export const defaultSimRules: SimRules = {
 };
 
 export const defaultSimSpawn: SimSpawn = {
-  chance: 1.6,
+  chance: 0.3,
   radius: 15,
 };
 
@@ -173,11 +173,20 @@ export class Simulation {
       for (let rx = -this.#spawn.radius; rx <= this.#spawn.radius; ++rx)
         for (let ry = -this.#spawn.radius; ry <= this.#spawn.radius; ++ry) {
           if (rx ** 2 + ry ** 2 > r2) continue;
-          const index = this.#xyToIndex(rx + x, ry + y);
-          this.#current[index] = tool.id === 'noise' ? (this.#current[index] & 0xff0) | Math.round(Math.random() * 8) : 0;
+          this.#current[this.#xyToIndex(rx + x, ry + y)] = 0;
         }
-    } else {
-      if (!('points' in tool)) throw new Error('invalid tool');
+      if (tool.id === 'noise') {
+        for (let rx = -this.#spawn.radius; rx <= this.#spawn.radius; ++rx)
+          for (let ry = -this.#spawn.radius; ry <= this.#spawn.radius; ++ry) {
+            if (rx ** 2 + ry ** 2 > r2) continue;
+            if (Math.random() < 0.7) continue;
+            const index = this.#xyToIndex(rx + x, ry + y);
+            this.#current[index] = 0x10;
+            this.#updateNeighbours(this.#current, [rx + x, ry + y], 1);
+          }
+      }
+    }
+    if ('points' in tool) {
       let { width, height } = tool;
       let points: typeof tool.points = [];
       if (tool.rotation === 0) points = tool.points;

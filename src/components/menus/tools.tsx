@@ -134,20 +134,18 @@ export function ToolsMenu() {
   const { controls } = useSimControls();
 
   // biome-ignore format: do not
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleObjectClick = useCallback((id: string) => {
     const object = simObjects[simObjects.findIndex((item) => item.id === id)];
     if (object.id === activeToolRef.current.id && 'rotation' in activeToolRef.current)
       setActiveTool({ ...object, rotation: (activeToolRef.current.rotation + 1) % 4 });
     else setActiveTool({...object,rotation:0})
-  }, [setActiveTool, simObjects]);
+  }, [ simObjects]);
 
-  const handleNoiseClick = useCallback(() => setActiveTool({ id: 'noise' }), [setActiveTool]);
-  const handleEraseClick = useCallback(() => setActiveTool({ id: 'erase' }), [setActiveTool]);
+  const handleNoiseClick = useCallback(() => setActiveTool({ id: 'noise' }), []);
+  const handleEraseClick = useCallback(() => setActiveTool({ id: 'erase' }), []);
 
   const randomPath = useMemo(() => pointsToPath(makeRandomPoints(controls.spawn.radius)), [controls.spawn.radius]);
 
-  //TODO: icon
   return (
     <Menu>
       <MenuTrigger>

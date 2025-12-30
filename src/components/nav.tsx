@@ -14,30 +14,13 @@ export function Nav() {
   const { simulationRef, stepTimesRef } = useSimulation();
   const [fullScreen, setFullScreen] = useState(!!document.fullscreenElement);
 
-  const handlePausedClick = useCallback(() => setControls((prev) => ({ ...prev, paused: !prev.paused })), [setControls]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  const handleClearClick = useCallback(() => {
-    simulationRef.current.clear();
-  }, []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  const handlePruneYoungestClick = useCallback(() => {
-    simulationRef.current.prune(SimPrune.Youngest);
-  }, []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  const handlePruneOldestClick = useCallback(() => {
-    simulationRef.current.prune(SimPrune.Oldest);
-  }, []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
+  const handlePausedClick = useCallback(() => setControls((prev) => ({ ...prev, paused: !prev.paused })), []);
+  const handleClearClick = useCallback(() => simulationRef.current.clear(), []);
+  const handlePruneYoungestClick = useCallback(() => simulationRef.current.prune(SimPrune.Youngest), []);
+  const handlePruneOldestClick = useCallback(() => simulationRef.current.prune(SimPrune.Oldest), []);
   const handleSaveClick = useCallback(() => commandsRef.current.emit(Command.Save), []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleSeedClick = useCallback(() => simulationRef.current.seed(), []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   const handleStepClick = useCallback(() => {
     stepTimesRef.current.push(simulationRef.current.step());
     if (!controlsRef.current.paused) setControls((prev) => ({ ...prev, paused: true }));
@@ -49,7 +32,6 @@ export function Nav() {
     else document.body.requestFullscreen().catch((err) => console.error('error requesting full screen', err));
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   useEffect(() => {
     // biome-ignore format: do not
     const shortcuts = new Map<string, () => unknown>([
@@ -72,7 +54,7 @@ export function Nav() {
       ['d', () => {
         console.debug(...simulationRef.current.values().map(([x, y, age, neighbours]) => ({ x, y, age, neighbours })));
         console.debug(simulationRef.current.inspect());
-      },],
+      }],
       ['f', handleFullScreenClick],
       ['o', handlePruneOldestClick],
       ['s', () => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, enabled: !prev.spawn.enabled } }))],
@@ -83,6 +65,7 @@ export function Nav() {
 
     // biome-ignore format: do not
     document.addEventListener('keydown', (event) => {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const shortcut = shortcuts.get(event.key.toLocaleLowerCase());
       if (!shortcut) return;
       event.stopPropagation();
@@ -94,16 +77,7 @@ export function Nav() {
     document.addEventListener('fullscreenchange', () => setFullScreen(!!document.fullscreenElement), { signal: controller.signal });
 
     return () => controller.abort();
-  }, [
-    handleClearClick,
-    handlePausedClick,
-    handleSeedClick,
-    handleStepClick,
-    setControls,
-    handleFullScreenClick,
-    handlePruneOldestClick,
-    handlePruneYoungestClick,
-  ]);
+  }, [handleClearClick, handlePausedClick, handleSeedClick, handleStepClick, handleFullScreenClick, handlePruneOldestClick, handlePruneYoungestClick]);
 
   return (
     <nav className='flex flex-wrap gap-4 items-center justify-center w-full p-4'>

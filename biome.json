@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.6/schema.json",
   "assist": {
     "actions": {
       "source": {
@@ -45,6 +45,46 @@
           "fix": "safe",
           "level": "warn",
           "options": {}
+        },
+        "useExhaustiveDependencies": {
+          "level": "warn",
+          "options": {
+            "hooks": [
+              {
+                "name": "useRenderControls",
+                "stableResult": ["controlsRef", "setControls"]
+              },
+              {
+                "name": "useSimControls",
+                "stableResult": ["setControls", "controlsRef", "commandsRef"]
+              },
+              {
+                "name": "useSimulation",
+                "stableResult": ["simulationRef", "stepTimesRef"]
+              },
+              {
+                "name": "useTheme",
+                "stableResult": ["setTheme", "themeRef", "themeDarkRef"]
+              },
+              {
+                "name": "useTool",
+                "stableResult": ["setActiveTool", "activeToolRef"]
+              },
+              {
+                "name": "useMenu",
+                "stableResult": ["triggerRef", "menuRef", "stateRef"]
+              },
+              {
+                "name": "useToolTip",
+                "stableResult": ["settingsRef"]
+              },
+              {
+                "name": "useModal",
+                "stableResult": ["triggerRef", "modalRef", "stateRef"]
+              }
+            ],
+            "reportMissingDependenciesArray": true
+          }
         }
       },
       "recommended": true,

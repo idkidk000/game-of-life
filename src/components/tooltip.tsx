@@ -67,7 +67,6 @@ export function ToolTip({ children, title }: { children: ReactElement; title: st
   const stateRef = useRef(ToolTipState.Closed);
   const { settingsRef } = useToolTip();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   useEffect(() => {
     if (!popoverRef.current) return;
     if (!trigger) return;
@@ -173,7 +172,7 @@ export function ToolTip({ children, title }: { children: ReactElement; title: st
       <p
         popover='hint'
         ref={popoverRef}
-        className={`p-1 bg-background starting:opacity-0 starting:scale-95 starting:translate-y-4 transition-[opacity,scale,translate] duration-200 ease-in border-3 border-accent/50 text-xs -translate-x-1/2 text-right w-max ${closing ? 'opacity-0 scale-95 translate-y-4' : ''}`}
+        className={`p-1 bg-background starting:opacity-0 starting:scale-95 starting:translate-y-4 transition-[opacity,scale,translate] duration-200 ease-in border-3 border-accent/50 text-xs -translate-x-1/2 w-max ${closing ? 'opacity-0 scale-95 translate-y-4' : ''}`}
       >
         {title}
       </p>

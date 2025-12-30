@@ -1,38 +1,24 @@
+import { homepage } from '@root/package.json';
 import { useCallback } from 'react';
 import { Button } from '@/components/button';
 import { Checkbox } from '@/components/checkbox';
 import { Menu, MenuContent, MenuTrigger } from '@/components/menu';
 import { Range } from '@/components/range';
 import { Rules } from '@/components/rules';
-import { Menu as MenuIcon, Undo } from '@/generated/icons';
+import { Github2, Menu as MenuIcon, Undo } from '@/generated/icons';
 import { type Controls as ControlsType, controlDefaults, useSimControls } from '@/hooks/sim-controls';
 import { objectIsEqual, omit } from '@/lib/utils';
-
 export function MainMenu() {
   const { setControls, controls } = useSimControls();
 
-  // states
-  const handleSpawnEnabledChange = useCallback((enabled: boolean) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, enabled } })), [setControls]);
-
-  const handleScaleChange = useCallback((scale: number) => setControls((prev) => ({ ...prev, scale })), [setControls]);
-
-  // biome-ignore format: do not
-  const handleSpawnRadiusChange = useCallback(
-    (radius: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, radius } })),
-  [setControls] );
-
-  // biome-ignore format: do not
-  const handleSpawnChanceChange = useCallback(
-    (chance: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, chance } })),
-  [setControls]);
-
-  const handleSpeedChange = useCallback((speed: number) => setControls((prev) => ({ ...prev, speed })), [setControls]);
-
-  const handleRulesChange = useCallback((rules: ControlsType['rules']) => setControls((prev) => ({ ...prev, rules })), [setControls]);
-
-  const handleResetClick = useCallback(() => setControls(() => ({ ...controlDefaults })), [setControls]);
-
-  const handleWrapChange = useCallback((wrap: boolean) => setControls((prev) => ({ ...prev, wrap })), [setControls]);
+  const handleSpawnEnabledChange = useCallback((enabled: boolean) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, enabled } })), []);
+  const handleScaleChange = useCallback((scale: number) => setControls((prev) => ({ ...prev, scale })), []);
+  const handleSpawnRadiusChange = useCallback((radius: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, radius } })), []);
+  const handleSpawnChanceChange = useCallback((chance: number) => setControls((prev) => ({ ...prev, spawn: { ...prev.spawn, chance } })), []);
+  const handleSpeedChange = useCallback((speed: number) => setControls((prev) => ({ ...prev, speed })), []);
+  const handleRulesChange = useCallback((rules: ControlsType['rules']) => setControls((prev) => ({ ...prev, rules })), []);
+  const handleResetClick = useCallback(() => setControls(() => ({ ...controlDefaults })), []);
+  const handleWrapChange = useCallback((wrap: boolean) => setControls((prev) => ({ ...prev, wrap })), []);
 
   return (
     <Menu>
@@ -92,6 +78,11 @@ export function MainMenu() {
           >
             <Undo />
           </Button>
+
+          <a className='button text-xs' href={homepage} target='_blank'>
+            <Github2 />
+            GitHub
+          </a>
         </div>
       </MenuContent>
     </Menu>

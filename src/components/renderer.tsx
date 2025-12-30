@@ -40,7 +40,7 @@ export function Renderer() {
   const labelsRef = useRef<HTMLDivElement>(null);
   const { controlsRef: renderControlsRef } = useRenderControls();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref objects
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   useEffect(() => {
     if (!canvasRef.current) return;
     const frameTimes = new SlidingWindow<number>(100);
@@ -350,8 +350,8 @@ export function Renderer() {
         colourBuffer.subdata(colourArray.subarray(0, (i + 1) * 3));
         positionBuffer.subdata(positionArray.subarray(0, (i + 1) * 2));
 
+        // render
         if (renderControlsRef.current.bloom) {
-          // render
           // clear framebuffer to transparent black to avoid interfering with colour mixing
           regl.clear({ color: [0, 0, 0, 0], depth: 1, framebuffer: drawFramebuffer });
           // draw to framebuffer

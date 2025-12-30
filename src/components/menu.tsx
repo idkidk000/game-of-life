@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from 'react';
+import type { MouseEvent, ReactElement, ReactNode } from 'react';
 import { createContext, type RefObject, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -77,28 +77,17 @@ export function useMenu() {
 export function MenuTrigger({ children }: { children: ReactElement }) {
   const { toggleOpen, triggerRef } = useMenu();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  useEffect(() => {
-    const controller = new AbortController();
-    triggerRef.current?.addEventListener('click', toggleOpen, { signal: controller.signal });
-    return () => controller.abort();
-  }, [toggleOpen]);
-
-  return <span ref={triggerRef}>{children}</span>;
+  return (
+    <span ref={triggerRef} onClick={toggleOpen}>
+      {children}
+    </span>
+  );
 }
 
 export function MenuClose({ children }: { children: ReactElement }) {
   const { setClosed } = useMenu();
-  const ref = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => {
-    if (!ref.current) return;
-    const controller = new AbortController();
-    ref.current.addEventListener('click', setClosed, { signal: controller.signal });
-    return () => controller.abort();
-  }, [setClosed]);
-
-  return <span ref={ref}>{children}</span>;
+  return <span onClick={setClosed}>{children}</span>;
 }
 
 // closing styling on popovers is still jank in firefox
@@ -117,7 +106,6 @@ export function MenuContent({
   const ref = useRef<HTMLDivElement>(null);
 
   // update position styles on document resize
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref objects
   useLayoutEffect(() => {
     // mozilla pls https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/anchor
     const update = () => {
@@ -141,11 +129,10 @@ export function MenuContent({
     ref.current?.setAttribute('is-open', String(state === MenuState.Open));
   }, [state]);
 
-  useEffect(() => {
-    // outer onClick includes children
-    ref.current?.addEventListener('click', (event) => {
-      if (event.target === ref.current) setClosed();
-    });
+  // outer onClick includes children
+  // biome-ignore format: no
+  const handleClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    if (event.target === ref.current) setClosed();
   }, [setClosed]);
 
   return createPortal(
@@ -153,6 +140,7 @@ export function MenuContent({
       popover='manual'
       ref={ref}
       className={`size-full transition-[background] duration-200 starting:bg-transparent ${state === MenuState.Open ? 'bg-background/50' : state === MenuState.Closing ? 'bg-transparent' : 'hidden'}`}
+      onClick={handleClick}
     >
       <menu
         className={`fixed ${width === 'full' ? 'left-0 right-0' : '-translate-x-full'} ${className} ${state === MenuState.Closing ? classNameClosing : ''}`}

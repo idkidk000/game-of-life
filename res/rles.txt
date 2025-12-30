@@ -52,6 +52,38 @@ x = 13, y = 12, rule = B3/S23
 8b2o3b$7b2o4b$9bo3b$11b2o$10bo2b2$9bo2bo$b2o5b2o3b$2o5bo5b$2bo4bobo3b$
 4b2o2bo4b$4b2o!
 
+#N Gosper glider gun
+#C This was the first gun discovered.
+#C As its name suggests, it was discovered by Bill Gosper.
+x = 36, y = 9, rule = B3/S23
+24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4b
+obo$10bo5bo7bo$11bo3bo$12b2o!
+
+#N Simkin glider gun
+#O Michael Simkin
+#C A true period 120 glider gun, found on April 28, 2015.
+#C www.conwaylife.com/wiki/Simkin_glider_gun
+x = 33, y = 21, rule = B3/S23
+2o5b2o$2o5b2o2$4b2o$4b2o5$22b2ob2o$21bo5bo$21bo6bo2b2o$21b3o3bo3b2o$
+26bo4$20b2o$20bo$21b3o$23bo!
+
+#N 3 block twin bees shuttle
+#O Bill Gosper, 1971
+#C https://conwaylife.com/wiki/Twin_bees_shuttle
+#C https://www.conwaylife.com/patterns/3blocktwinbeesshuttle.rle
+x = 29, y = 11, rule = B3/S23
+17b2o$2o15bobo7b2o$2o17bo7b2o$17b3o4$17b3o$2o17bo$2o15bobo$17b2o!
+
+#N P46 lumps of muck hasslers
+#C https://conwaylife.com/wiki/Lumps_of_muck_hasslers
+#C https://www.conwaylife.com/patterns/p46lumpsofmuckhassler.rle
+x = 41, y = 30, rule = B3/S23
+24b2o7bo$24b2o5b3o$30bo8b2o$30b2o7bo$37bobo$27b3o7b2o$26bo3bo$25bo5bo$
+8bo3bo12bo5bo$7bobo2b3o10bo5bo$7bobo5bo10bo3bo$6b2ob2o3b2o11b3o2$6b2ob
+2o23b2o$7bob2o24bo$5bo24b2obo$5b2o23b2ob2o2$11b3o11b2o3b2ob2o$10bo3bo
+10bo5bobo$9bo5bo10b3o2bobo$9bo5bo12bo3bo$9bo5bo$10bo3bo$2b2o7b3o$bobo$
+bo7b2o$2o8bo$7b3o5b2o$7bo7b2o!
+
 #N Xwsstagalong
 #C https://conwaylife.com/wiki/Lightweight_spaceship
 #C https://www.conwaylife.com/patterns/xwsstagalong.rle
@@ -60,13 +92,6 @@ x = 25, y = 19, rule = b3/s23
 9b2obobobo2b5o$bo2bo2b2o2bo3b3o2bob2ob$6bo2bob2o12b$6bo4b2o12b$6bo2bob
 2o12b$bo2bo2b2o2bo3b3o2bob2ob$o9b2obobobo2b5o$o3bo5b2ob2obobob5o$4o8bo
 3bob2o5b$13bo11b$13bo2bob2o5b$18b4o3b$21bo!
-
-#N Gosper glider gun
-#C This was the first gun discovered.
-#C As its name suggests, it was discovered by Bill Gosper.
-x = 36, y = 9, rule = B3/S23
-24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4b
-obo$10bo5bo7bo$11bo3bo$12b2o!
 
 #N Spaghetti monster
 #O Tim Coe

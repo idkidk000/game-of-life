@@ -14,22 +14,22 @@ export function GraphicsMenu() {
   const { theme, setTheme } = useTheme();
 
   // sim controls provider
-  const handleBloomChange = useCallback((bloom: boolean) => setControls((prev) => ({ ...prev, bloom })), [setControls]);
-  const handleRadiusChange = useCallback((blurRadius: number) => setControls((prev) => ({ ...prev, blurRadius })), [setControls]);
-  const handleStepChange = useCallback((blurStep: number) => setControls((prev) => ({ ...prev, blurStep })), [setControls]);
-  const handleFalloffChange = useCallback((falloff: number) => setControls((prev) => ({ ...prev, blurFalloff: falloff })), [setControls]);
-  const handleColourChange = useCallback((colourMix: number) => setControls((prev) => ({ ...prev, colourMix })), [setControls]);
-  const handleBlur0Change = useCallback((blur0Mix: number) => setControls((prev) => ({ ...prev, blur0Mix })), [setControls]);
-  const handleBlur1Change = useCallback((blur1Mix: number) => setControls((prev) => ({ ...prev, blur1Mix })), [setControls]);
-  const handleBlur2Change = useCallback((blur2Mix: number) => setControls((prev) => ({ ...prev, blur2Mix })), [setControls]);
-  const handleBackgroundChange = useCallback((background: boolean) => setControls((prev) => ({ ...prev, background })), [setControls]);
-  const handleRenderResetClick = useCallback(() => setControls(defaultControls), [setControls]);
+  const handleBloomChange = useCallback((bloom: boolean) => setControls((prev) => ({ ...prev, bloom })), []);
+  const handleRadiusChange = useCallback((blurRadius: number) => setControls((prev) => ({ ...prev, blurRadius })), []);
+  const handleStepChange = useCallback((blurStep: number) => setControls((prev) => ({ ...prev, blurStep })), []);
+  const handleFalloffChange = useCallback((falloff: number) => setControls((prev) => ({ ...prev, blurFalloff: falloff })), []);
+  const handleColourChange = useCallback((colourMix: number) => setControls((prev) => ({ ...prev, colourMix })), []);
+  const handleBlur0Change = useCallback((blur0Mix: number) => setControls((prev) => ({ ...prev, blur0Mix })), []);
+  const handleBlur1Change = useCallback((blur1Mix: number) => setControls((prev) => ({ ...prev, blur1Mix })), []);
+  const handleBlur2Change = useCallback((blur2Mix: number) => setControls((prev) => ({ ...prev, blur2Mix })), []);
+  const handleBackgroundChange = useCallback((background: boolean) => setControls((prev) => ({ ...prev, background })), []);
+  const handleRenderResetClick = useCallback(() => setControls(defaultControls), []);
 
   // theme provider
-  const handleThemeColourChange = useCallback((colour: ThemeColour) => setTheme((prev) => ({ ...prev, colour })), [setTheme]);
-  const handleHueChange = useCallback((hue: number) => setTheme((prev) => ({ ...prev, hue })), [setTheme]);
-  const handleThemePreferenceChange = useCallback((preference: ThemePreference) => setTheme((prev) => ({ ...prev, preference })), [setTheme]);
-  const handleThemeResetClick = useCallback(() => setTheme(defaultTheme), [setTheme]);
+  const handleThemeColourChange = useCallback((colour: ThemeColour) => setTheme((prev) => ({ ...prev, colour })), []);
+  const handleHueChange = useCallback((hue: number) => setTheme((prev) => ({ ...prev, hue })), []);
+  const handleThemePreferenceChange = useCallback((preference: ThemePreference) => setTheme((prev) => ({ ...prev, preference })), []);
+  const handleThemeResetClick = useCallback(() => setTheme(defaultTheme), []);
 
   return (
     <Menu>
@@ -159,7 +159,7 @@ export function GraphicsMenu() {
               onValueChange={handleThemePreferenceChange}
               type='number'
               options={enumValues(ThemePreference).map(([label, key]) => ({ key, label }))}
-            ></Select>
+            />
             <Range min={0} max={359} step={0} decimals={0} label='Hue' title='Hue offset' value={theme.hue} unit='°' onValueChange={handleHueChange} />
             <Button
               type='reset'

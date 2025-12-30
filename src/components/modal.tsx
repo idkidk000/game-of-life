@@ -1,4 +1,16 @@
-import { createContext, type ReactElement, type ReactNode, type RefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  type MouseEvent,
+  type ReactElement,
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 
 enum ModalState {
@@ -75,26 +87,17 @@ export function useModal() {
 export function ModalTrigger({ children }: { children: ReactElement }) {
   const { triggerRef, toggleOpen } = useModal();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  useEffect(() => {
-    const controller = new AbortController();
-    triggerRef.current?.addEventListener('click', toggleOpen, { signal: controller.signal });
-    return () => controller.abort();
-  }, [toggleOpen]);
-
-  return <span ref={triggerRef}>{children}</span>;
+  return (
+    <span ref={triggerRef} onClick={toggleOpen}>
+      {children}
+    </span>
+  );
 }
+
 export function ModalClose({ children }: { children: ReactElement }) {
   const { setClosed } = useModal();
-  const ref = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    ref.current?.addEventListener('click', setClosed, { signal: controller.signal });
-    return () => controller.abort();
-  }, [setClosed]);
-
-  return <span ref={ref}>{children}</span>;
+  return <span onClick={setClosed}>{children}</span>;
 }
 
 export function ModalContent({
@@ -108,19 +111,16 @@ export function ModalContent({
 }) {
   const { modalRef, state, setClosed } = useModal();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
   useEffect(() => {
     if (state === ModalState.Open) modalRef.current?.showModal();
     if (state === ModalState.Closed) modalRef.current?.close();
     modalRef.current?.setAttribute('is-open', String(state === ModalState.Open));
   }, [state]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref object
-  useEffect(() => {
-    // dialog's onClick includes children
-    modalRef.current?.addEventListener('click', (event) => {
-      if (event.target === modalRef.current) setClosed();
-    });
+  // dialog's onClick includes children
+  // biome-ignore format: no
+  const handleClick = useCallback((event: MouseEvent<HTMLDialogElement>) => {
+    if (event.target === modalRef.current) setClosed();
   }, [setClosed]);
 
   // styling ::backdrop transitions is still jank
@@ -128,7 +128,7 @@ export function ModalContent({
     <dialog
       ref={modalRef}
       className={`size-full transition-[background] duration-200 starting:bg-transparent flex m-4 max-w-[calc(100dvw-2em)] max-h-[calc(100dvh-2em)] ${state === ModalState.Open ? 'bg-background/50' : state === ModalState.Closing ? 'bg-transparent' : 'hidden'}`}
-      // onClick={setClosed}
+      onClick={handleClick}
     >
       <div className={`${className} ${state === ModalState.Closing ? classNameClosing : ''}`}>{children}</div>
     </dialog>,
